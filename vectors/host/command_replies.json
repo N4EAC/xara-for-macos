@@ -1,0 +1,594 @@
+{
+ "table": [
+  {
+   "sent": "ABORT\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "BITRATE\r",
+   "state": "idle",
+   "replies": ["WRONG"]
+  },
+  {
+   "sent": "BUFFER\r",
+   "state": "idle",
+   "replies": ["WRONG"]
+  },
+  {
+   "sent": "BW2300 \r",
+   "state": "idle",
+   "replies": ["WRONG"]
+  },
+  {
+   "sent": "BW2300\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "BW2750\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "BW500\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "CHAT OFF\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "CHAT ON \r",
+   "state": "idle",
+   "replies": ["WRONG"]
+  },
+  {
+   "sent": "CHAT ON\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "CLEANTXBUFFER\r",
+   "state": "idle",
+   "replies": ["CLEANTXBUFFER BUFFEREMPTY", "CLEANTXBUFFER FAILED", "CLEANTXBUFFER FAILED "]
+  },
+  {
+   "sent": "COMPRESSION FILES\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "COMPRESSION OFF\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "COMPRESSION ON\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "COMPRESSION TEXT\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "CONNECT N0CALL N1CALL X\r",
+   "state": "idle",
+   "replies": ["WRONG"]
+  },
+  {
+   "sent": "CONNECT N0CALL N1CALL\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "CONNECT N0CALL NOBODY\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "CONNECT N0CALL\r",
+   "state": "idle",
+   "replies": ["WRONG"]
+  },
+  {
+   "sent": "CONNECT N1CALL N0CALL-19\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "CONNECT N1CALL N0CALL-5\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "CONNECT N1CALL N0CALL1-R\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "CONNECT N1CALL N0CALL\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "CQFRAME N0CALL 2300\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "CQFRAME N0CALL 999\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "CQFRAME N0CALL-5 500\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "CQFRAME N0CALL\r",
+   "state": "idle",
+   "replies": ["WRONG"]
+  },
+  {
+   "sent": "CQFRAME N1CALL 2300\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "CQFRAME N1CALL-7 500\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "CQFRAME n0/x 500\r",
+   "state": "idle",
+   "replies": ["WRONG"]
+  },
+  {
+   "sent": "CWID OFF\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "CWID ON\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "DISCONNECT\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "DRIVELEVEL -5\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "DRIVELEVEL -7\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "ENCRYPTION OFF\r",
+   "state": "idle",
+   "replies": ["WRONG"]
+  },
+  {
+   "sent": "ENCRYPTION ON\r",
+   "state": "idle",
+   "replies": ["WRONG"]
+  },
+  {
+   "sent": "GATEWAY OFF\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "GATEWAY ON\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "GATEWAY\r",
+   "state": "idle",
+   "replies": ["WRONG"]
+  },
+  {
+   "sent": "IGNOREKISSDCD OFF\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "IGNOREKISSDCD ON\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "KISS ON\r",
+   "state": "idle",
+   "replies": ["WRONG"]
+  },
+  {
+   "sent": "LISTEN  ON\r",
+   "state": "idle",
+   "replies": ["WRONG"]
+  },
+  {
+   "sent": "LISTEN CQ\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "LISTEN OFF\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "LISTEN ON\nVERSION\r",
+   "state": "idle",
+   "replies": ["WRONG"]
+  },
+  {
+   "sent": "LISTEN ON\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "MYCALL  N0CALL\r",
+   "state": "idle",
+   "replies": ["WRONG | OK"]
+  },
+  {
+   "sent": "MYCALL A B C D E F\r",
+   "state": "idle",
+   "replies": ["WRONG | OK"]
+  },
+  {
+   "sent": "MYCALL N0/CALL\r",
+   "state": "idle",
+   "replies": ["WRONG | OK"]
+  },
+  {
+   "sent": "MYCALL N0CALL-01\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "MYCALL N0CALL-0\r",
+   "state": "idle",
+   "replies": ["WRONG | OK"]
+  },
+  {
+   "sent": "MYCALL N0CALL-20\r",
+   "state": "idle",
+   "replies": ["WRONG | OK"]
+  },
+  {
+   "sent": "MYCALL N0CALL-X\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "MYCALL N0CALL-\r",
+   "state": "idle",
+   "replies": ["WRONG | OK"]
+  },
+  {
+   "sent": "MYCALL N0CALLXYZ\r",
+   "state": "idle",
+   "replies": ["WRONG | OK"]
+  },
+  {
+   "sent": "MYCALL N0CALL\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "MYCALL n0call N0CALL-T N0CALL-19 N0CALL-L N0CALL1R\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "MYCALL n0call\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "MYCALL\r",
+   "state": "idle",
+   "replies": ["WRONG"]
+  },
+  {
+   "sent": "P2P SESSION\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "PUBLIC OFF\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "PUBLIC ON\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "RETRIES -1\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "RETRIES 0\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "RETRIES 15\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "RETRIES 1\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "RETRIES 2\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "RETRIES 300\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "RETRIES 3\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "RETRIES 4\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "RETRIES 5\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "RETRIES 7\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "RETRIES abc\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "SN\r",
+   "state": "idle",
+   "replies": ["WRONG"]
+  },
+  {
+   "sent": "TUNE -6\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "TUNE ?\r",
+   "state": "idle",
+   "replies": ["TUNE -5"]
+  },
+  {
+   "sent": "TUNE OFF\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "VERSION \r",
+   "state": "idle",
+   "replies": ["WRONG"]
+  },
+  {
+   "sent": "VERSION\n",
+   "state": "idle",
+   "replies": ["(none)"]
+  },
+  {
+   "sent": "VERSION\r",
+   "state": "idle",
+   "replies": ["VERSION VARA HF v4.9.0"]
+  },
+  {
+   "sent": "VERSION\r\n",
+   "state": "idle",
+   "replies": ["VERSION VARA HF v4.9.0"]
+  },
+  {
+   "sent": "WINLINK SESSION\r",
+   "state": "idle",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "\r",
+   "state": "idle",
+   "replies": ["VERSION VARA HF v4.9.0", "WRONG"]
+  },
+  {
+   "sent": "listen on\r",
+   "state": "idle",
+   "replies": ["WRONG"]
+  },
+  {
+   "sent": "version\r",
+   "state": "idle",
+   "replies": ["WRONG"]
+  },
+  {
+   "sent": "ABORT\r",
+   "state": "linked",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "BUFFER\r",
+   "state": "linked",
+   "replies": ["WRONG"]
+  },
+  {
+   "sent": "BW500\r",
+   "state": "linked",
+   "replies": ["WRONG"]
+  },
+  {
+   "sent": "CHAT OFF\r",
+   "state": "linked",
+   "replies": ["WRONG"]
+  },
+  {
+   "sent": "CHAT ON\r",
+   "state": "linked",
+   "replies": ["WRONG"]
+  },
+  {
+   "sent": "CLEANTXBUFFER\r",
+   "state": "linked",
+   "replies": ["CLEANTXBUFFER BUFFEREMPTY", "CLEANTXBUFFER FAILED "]
+  },
+  {
+   "sent": "COMPRESSION FILES\r",
+   "state": "linked",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "COMPRESSION OFF\r",
+   "state": "linked",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "CONNECT N0CALL N1CALL\r",
+   "state": "linked",
+   "replies": ["WRONG"]
+  },
+  {
+   "sent": "CQFRAME N0CALL 2300\r",
+   "state": "linked",
+   "replies": ["WRONG"]
+  },
+  {
+   "sent": "CWID OFF\r",
+   "state": "linked",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "DISCONNECT\r",
+   "state": "linked",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "DRIVELEVEL -5\r",
+   "state": "linked",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "ENCRYPTION ON\r",
+   "state": "linked",
+   "replies": ["WRONG"]
+  },
+  {
+   "sent": "GATEWAY X\r",
+   "state": "linked",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "IGNOREKISSDCD OFF\r",
+   "state": "linked",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "IGNOREKISSDCD ON\r",
+   "state": "linked",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "LISTEN CQ\r",
+   "state": "linked",
+   "replies": ["WRONG"]
+  },
+  {
+   "sent": "LISTEN OFF\r",
+   "state": "linked",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "LISTEN ON\r",
+   "state": "linked",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "MYCALL N0CALL-0\r",
+   "state": "linked",
+   "replies": ["WRONG"]
+  },
+  {
+   "sent": "MYCALL N0CALL-5\r",
+   "state": "linked",
+   "replies": ["WRONG"]
+  },
+  {
+   "sent": "P2P SESSION\r",
+   "state": "linked",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "PUBLIC ON\r",
+   "state": "linked",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "RETRIES 0\r",
+   "state": "linked",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "RETRIES 5\r",
+   "state": "linked",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "TUNE ?\r",
+   "state": "linked",
+   "replies": ["TUNE -5"]
+  },
+  {
+   "sent": "TUNE OFF\r",
+   "state": "linked",
+   "replies": ["OK"]
+  },
+  {
+   "sent": "VERSION \r",
+   "state": "linked",
+   "replies": ["WRONG"]
+  },
+  {
+   "sent": "VERSION\r",
+   "state": "linked",
+   "replies": ["VERSION VARA HF v4.9.0"]
+  },
+  {
+   "sent": "WINLINK SESSION\r",
+   "state": "linked",
+   "replies": ["OK"]
+  }
+ ]
+}

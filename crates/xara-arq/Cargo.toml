@@ -1,0 +1,18 @@
+[package]
+name = "xara-arq"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+readme.workspace = true
+repository.workspace = true
+description = "Sans-IO ARQ state machines, compression and broadcast codecs for a VARA-compatible HF/FM modem."
+
+[dependencies]
+xara-phy.workspace = true
+miniz_oxide.workspace = true
+
+[dev-dependencies]
+xara-host.workspace = true
+xara-testkit.workspace = true

@@ -1,0 +1,11 @@
+# Changelog
+
+## 0.1.0
+
+first release
+
+- modem is fully compatible with VARA HF 4.9.0 and VARA FM 4.4.0
+- web UI for configuration and management
+- all the usual TCP ports (works with your favorite software)
+- pipewire, pulse, and alsa support
+- `xara-monitor`: passive VARA HF monitor (with web UI)

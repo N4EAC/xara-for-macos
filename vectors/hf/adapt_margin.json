@@ -1,0 +1,1654 @@
+{
+ "sequences": [
+  {
+   "name": "early_failed_climb",
+   "bw": 2300,
+   "events": [
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 1.9666666984558105,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 2,
+      "qam": -1,
+      "last": 4,
+      "climb": 0,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 1.933333396911621,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 3,
+      "qam": -1,
+      "last": 4,
+      "climb": 0,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 1.9000000953674316,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 4,
+      "qam": -1,
+      "last": 4,
+      "climb": 0,
+      "good": 4
+     }
+    },
+    {
+     "ev": "lost",
+     "level": 5,
+     "state": null,
+     "after": {
+      "A": 5.099999904632568,
+      "decay": 0.21333332359790802,
+      "A_prev": 1.9000000953674316,
+      "n": 0,
+      "qam": -1,
+      "last": 5,
+      "climb": 1,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 4.886666774749756,
+      "decay": 0.21333332359790802,
+      "A_prev": 1.9000000953674316,
+      "n": 1,
+      "qam": -1,
+      "last": 4,
+      "climb": 1,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 4.673333644866943,
+      "decay": 0.21333332359790802,
+      "A_prev": 1.9000000953674316,
+      "n": 2,
+      "qam": -1,
+      "last": 4,
+      "climb": 1,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 4.460000514984131,
+      "decay": 0.21333332359790802,
+      "A_prev": 1.9000000953674316,
+      "n": 3,
+      "qam": -1,
+      "last": 4,
+      "climb": 1,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 4.246667385101318,
+      "decay": 0.21333332359790802,
+      "A_prev": 1.9000000953674316,
+      "n": 4,
+      "qam": -1,
+      "last": 4,
+      "climb": 1,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 4.033334255218506,
+      "decay": 0.21333332359790802,
+      "A_prev": 1.9000000953674316,
+      "n": 5,
+      "qam": -1,
+      "last": 4,
+      "climb": 1,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 3.8200008869171143,
+      "decay": 0.21333332359790802,
+      "A_prev": 1.9000000953674316,
+      "n": 6,
+      "qam": -1,
+      "last": 4,
+      "climb": 1,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 3.6066675186157227,
+      "decay": 0.21333332359790802,
+      "A_prev": 1.9000000953674316,
+      "n": 7,
+      "qam": -1,
+      "last": 4,
+      "climb": 1,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 3.393334150314331,
+      "decay": 0.21333332359790802,
+      "A_prev": 1.9000000953674316,
+      "n": 8,
+      "qam": -1,
+      "last": 4,
+      "climb": 1,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 3.1800007820129395,
+      "decay": 0.21333332359790802,
+      "A_prev": 1.9000000953674316,
+      "n": 9,
+      "qam": -1,
+      "last": 4,
+      "climb": 1,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 2.966667413711548,
+      "decay": 0.21333332359790802,
+      "A_prev": 1.9000000953674316,
+      "n": 10,
+      "qam": -1,
+      "last": 4,
+      "climb": 1,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 2.7533340454101562,
+      "decay": 0.21333332359790802,
+      "A_prev": 1.9000000953674316,
+      "n": 11,
+      "qam": -1,
+      "last": 4,
+      "climb": 1,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 2.5400006771087646,
+      "decay": 0.21333332359790802,
+      "A_prev": 1.9000000953674316,
+      "n": 12,
+      "qam": -1,
+      "last": 4,
+      "climb": 1,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 2.326667308807373,
+      "decay": 0.21333332359790802,
+      "A_prev": 1.9000000953674316,
+      "n": 13,
+      "qam": -1,
+      "last": 4,
+      "climb": 1,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 2.1133339405059814,
+      "decay": 0.21333332359790802,
+      "A_prev": 1.9000000953674316,
+      "n": 14,
+      "qam": -1,
+      "last": 4,
+      "climb": 1,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 1.9000005722045898,
+      "decay": 0.21333332359790802,
+      "A_prev": 1.9000000953674316,
+      "n": 15,
+      "qam": -1,
+      "last": 4,
+      "climb": 1,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 1.6866672039031982,
+      "decay": 0.21333332359790802,
+      "A_prev": 1.9000000953674316,
+      "n": 16,
+      "qam": -1,
+      "last": 4,
+      "climb": 1,
+      "good": 4
+     }
+    }
+   ]
+  },
+  {
+   "name": "second_failed_climb",
+   "bw": 2300,
+   "events": [
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 1.9666666984558105,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 2,
+      "qam": -1,
+      "last": 4,
+      "climb": 0,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 1.933333396911621,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 3,
+      "qam": -1,
+      "last": 4,
+      "climb": 0,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 1.9000000953674316,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 4,
+      "qam": -1,
+      "last": 4,
+      "climb": 0,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 1.8666667938232422,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 5,
+      "qam": -1,
+      "last": 4,
+      "climb": 0,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 1.8333334922790527,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 6,
+      "qam": -1,
+      "last": 4,
+      "climb": 0,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 1.8000001907348633,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 7,
+      "qam": -1,
+      "last": 4,
+      "climb": 0,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 1.7666668891906738,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 8,
+      "qam": -1,
+      "last": 4,
+      "climb": 0,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 1.7333335876464844,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 9,
+      "qam": -1,
+      "last": 4,
+      "climb": 0,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 1.700000286102295,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 10,
+      "qam": -1,
+      "last": 4,
+      "climb": 0,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 1.6666669845581055,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 11,
+      "qam": -1,
+      "last": 4,
+      "climb": 0,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 1.633333683013916,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 12,
+      "qam": -1,
+      "last": 4,
+      "climb": 0,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 1.6000003814697266,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 13,
+      "qam": -1,
+      "last": 4,
+      "climb": 0,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 1.566667079925537,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 14,
+      "qam": -1,
+      "last": 4,
+      "climb": 0,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 1.5333337783813477,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 15,
+      "qam": -1,
+      "last": 4,
+      "climb": 0,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 1.5000004768371582,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 16,
+      "qam": -1,
+      "last": 4,
+      "climb": 0,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 1.5,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 17,
+      "qam": -1,
+      "last": 4,
+      "climb": 0,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 1.5,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 18,
+      "qam": -1,
+      "last": 4,
+      "climb": 0,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 1.5,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 19,
+      "qam": -1,
+      "last": 4,
+      "climb": 0,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 1.5,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 20,
+      "qam": -1,
+      "last": 4,
+      "climb": 0,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 1.5,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 21,
+      "qam": -1,
+      "last": 4,
+      "climb": 0,
+      "good": 4
+     }
+    },
+    {
+     "ev": "lost",
+     "level": 5,
+     "state": null,
+     "after": {
+      "A": 2.5,
+      "decay": 0.06666667014360428,
+      "A_prev": 1.5,
+      "n": 0,
+      "qam": -1,
+      "last": 5,
+      "climb": 1,
+      "good": 4
+     }
+    },
+    {
+     "ev": "lost",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 2.5,
+      "decay": 0.06666667014360428,
+      "A_prev": 1.5,
+      "n": 0,
+      "qam": -1,
+      "last": 4,
+      "climb": 1,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 2.433333396911621,
+      "decay": 0.06666667014360428,
+      "A_prev": 1.5,
+      "n": 1,
+      "qam": -1,
+      "last": 4,
+      "climb": 1,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 5,
+     "state": null,
+     "after": {
+      "A": 2.366666793823242,
+      "decay": 0.06666667014360428,
+      "A_prev": 1.5,
+      "n": 2,
+      "qam": -1,
+      "last": 5,
+      "climb": 0,
+      "good": 5
+     }
+    },
+    {
+     "ev": "lost",
+     "level": 6,
+     "state": null,
+     "after": {
+      "A": 5.9666666984558105,
+      "decay": 0.23999999463558197,
+      "A_prev": 2.366666793823242,
+      "n": 0,
+      "qam": -1,
+      "last": 6,
+      "climb": 1,
+      "good": 5
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 5,
+     "state": null,
+     "after": {
+      "A": 5.7266669273376465,
+      "decay": 0.23999999463558197,
+      "A_prev": 2.366666793823242,
+      "n": 1,
+      "qam": -1,
+      "last": 5,
+      "climb": 1,
+      "good": 5
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 5,
+     "state": null,
+     "after": {
+      "A": 5.486667156219482,
+      "decay": 0.23999999463558197,
+      "A_prev": 2.366666793823242,
+      "n": 2,
+      "qam": -1,
+      "last": 5,
+      "climb": 1,
+      "good": 5
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 5,
+     "state": null,
+     "after": {
+      "A": 5.246667385101318,
+      "decay": 0.23999999463558197,
+      "A_prev": 2.366666793823242,
+      "n": 3,
+      "qam": -1,
+      "last": 5,
+      "climb": 1,
+      "good": 5
+     }
+    },
+    {
+     "ev": "lost",
+     "level": 6,
+     "state": null,
+     "after": {
+      "A": 12.64666748046875,
+      "decay": 0.4933333396911621,
+      "A_prev": 5.246667385101318,
+      "n": 0,
+      "qam": -1,
+      "last": 6,
+      "climb": 2,
+      "good": 5
+     }
+    }
+   ]
+  },
+  {
+   "name": "loss_at_steady_level",
+   "bw": 2300,
+   "events": [
+    {
+     "ev": "ok",
+     "level": 9,
+     "state": null,
+     "after": {
+      "A": 1.9666666984558105,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 2,
+      "qam": -1,
+      "last": 9,
+      "climb": 0,
+      "good": 9
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 9,
+     "state": null,
+     "after": {
+      "A": 1.933333396911621,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 3,
+      "qam": -1,
+      "last": 9,
+      "climb": 0,
+      "good": 9
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 9,
+     "state": null,
+     "after": {
+      "A": 1.9000000953674316,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 4,
+      "qam": -1,
+      "last": 9,
+      "climb": 0,
+      "good": 9
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 9,
+     "state": null,
+     "after": {
+      "A": 1.8666667938232422,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 5,
+      "qam": -1,
+      "last": 9,
+      "climb": 0,
+      "good": 9
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 9,
+     "state": null,
+     "after": {
+      "A": 1.8333334922790527,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 6,
+      "qam": -1,
+      "last": 9,
+      "climb": 0,
+      "good": 9
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 9,
+     "state": null,
+     "after": {
+      "A": 1.8000001907348633,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 7,
+      "qam": -1,
+      "last": 9,
+      "climb": 0,
+      "good": 9
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 9,
+     "state": null,
+     "after": {
+      "A": 1.7666668891906738,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 8,
+      "qam": -1,
+      "last": 9,
+      "climb": 0,
+      "good": 9
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 9,
+     "state": null,
+     "after": {
+      "A": 1.7333335876464844,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 9,
+      "qam": -1,
+      "last": 9,
+      "climb": 0,
+      "good": 9
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 9,
+     "state": null,
+     "after": {
+      "A": 1.700000286102295,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 10,
+      "qam": -1,
+      "last": 9,
+      "climb": 0,
+      "good": 9
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 9,
+     "state": null,
+     "after": {
+      "A": 1.6666669845581055,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 11,
+      "qam": -1,
+      "last": 9,
+      "climb": 0,
+      "good": 9
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 9,
+     "state": null,
+     "after": {
+      "A": 1.633333683013916,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 12,
+      "qam": -1,
+      "last": 9,
+      "climb": 0,
+      "good": 9
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 9,
+     "state": null,
+     "after": {
+      "A": 1.6000003814697266,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 13,
+      "qam": -1,
+      "last": 9,
+      "climb": 0,
+      "good": 9
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 9,
+     "state": null,
+     "after": {
+      "A": 1.566667079925537,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 14,
+      "qam": -1,
+      "last": 9,
+      "climb": 0,
+      "good": 9
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 9,
+     "state": null,
+     "after": {
+      "A": 1.5333337783813477,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 15,
+      "qam": -1,
+      "last": 9,
+      "climb": 0,
+      "good": 9
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 9,
+     "state": null,
+     "after": {
+      "A": 1.5000004768371582,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 16,
+      "qam": -1,
+      "last": 9,
+      "climb": 0,
+      "good": 9
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 9,
+     "state": null,
+     "after": {
+      "A": 1.5,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 17,
+      "qam": -1,
+      "last": 9,
+      "climb": 0,
+      "good": 9
+     }
+    },
+    {
+     "ev": "lost",
+     "level": 9,
+     "state": null,
+     "after": {
+      "A": 2.5,
+      "decay": 0.06666667014360428,
+      "A_prev": 1.5,
+      "n": 0,
+      "qam": -1,
+      "last": 9,
+      "climb": 0,
+      "good": 9
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 8,
+     "state": null,
+     "after": {
+      "A": 2.433333396911621,
+      "decay": 0.06666667014360428,
+      "A_prev": 1.5,
+      "n": 1,
+      "qam": -1,
+      "last": 8,
+      "climb": 0,
+      "good": 8
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 8,
+     "state": null,
+     "after": {
+      "A": 2.366666793823242,
+      "decay": 0.06666667014360428,
+      "A_prev": 1.5,
+      "n": 2,
+      "qam": -1,
+      "last": 8,
+      "climb": 0,
+      "good": 8
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 8,
+     "state": null,
+     "after": {
+      "A": 2.3000001907348633,
+      "decay": 0.06666667014360428,
+      "A_prev": 1.5,
+      "n": 3,
+      "qam": -1,
+      "last": 8,
+      "climb": 0,
+      "good": 8
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 8,
+     "state": null,
+     "after": {
+      "A": 2.2333335876464844,
+      "decay": 0.06666667014360428,
+      "A_prev": 1.5,
+      "n": 4,
+      "qam": -1,
+      "last": 8,
+      "climb": 0,
+      "good": 8
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 8,
+     "state": null,
+     "after": {
+      "A": 2.1666669845581055,
+      "decay": 0.06666667014360428,
+      "A_prev": 1.5,
+      "n": 5,
+      "qam": -1,
+      "last": 8,
+      "climb": 0,
+      "good": 8
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 8,
+     "state": null,
+     "after": {
+      "A": 2.1000003814697266,
+      "decay": 0.06666667014360428,
+      "A_prev": 1.5,
+      "n": 6,
+      "qam": -1,
+      "last": 8,
+      "climb": 0,
+      "good": 8
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 8,
+     "state": null,
+     "after": {
+      "A": 2.0333337783813477,
+      "decay": 0.06666667014360428,
+      "A_prev": 1.5,
+      "n": 7,
+      "qam": -1,
+      "last": 8,
+      "climb": 0,
+      "good": 8
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 8,
+     "state": null,
+     "after": {
+      "A": 1.9666670560836792,
+      "decay": 0.06666667014360428,
+      "A_prev": 1.5,
+      "n": 8,
+      "qam": -1,
+      "last": 8,
+      "climb": 0,
+      "good": 8
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 8,
+     "state": null,
+     "after": {
+      "A": 1.9000003337860107,
+      "decay": 0.06666667014360428,
+      "A_prev": 1.5,
+      "n": 9,
+      "qam": -1,
+      "last": 8,
+      "climb": 0,
+      "good": 8
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 8,
+     "state": null,
+     "after": {
+      "A": 1.8333336114883423,
+      "decay": 0.06666667014360428,
+      "A_prev": 1.5,
+      "n": 10,
+      "qam": -1,
+      "last": 8,
+      "climb": 0,
+      "good": 8
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 8,
+     "state": null,
+     "after": {
+      "A": 1.7666668891906738,
+      "decay": 0.06666667014360428,
+      "A_prev": 1.5,
+      "n": 11,
+      "qam": -1,
+      "last": 8,
+      "climb": 0,
+      "good": 8
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 8,
+     "state": null,
+     "after": {
+      "A": 1.7000001668930054,
+      "decay": 0.06666667014360428,
+      "A_prev": 1.5,
+      "n": 12,
+      "qam": -1,
+      "last": 8,
+      "climb": 0,
+      "good": 8
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 8,
+     "state": null,
+     "after": {
+      "A": 1.633333444595337,
+      "decay": 0.06666667014360428,
+      "A_prev": 1.5,
+      "n": 13,
+      "qam": -1,
+      "last": 8,
+      "climb": 0,
+      "good": 8
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 8,
+     "state": null,
+     "after": {
+      "A": 1.5666667222976685,
+      "decay": 0.06666667014360428,
+      "A_prev": 1.5,
+      "n": 14,
+      "qam": -1,
+      "last": 8,
+      "climb": 0,
+      "good": 8
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 8,
+     "state": null,
+     "after": {
+      "A": 1.5,
+      "decay": 0.06666667014360428,
+      "A_prev": 1.5,
+      "n": 15,
+      "qam": -1,
+      "last": 8,
+      "climb": 0,
+      "good": 8
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 8,
+     "state": null,
+     "after": {
+      "A": 1.5,
+      "decay": 0.06666667014360428,
+      "A_prev": 1.5,
+      "n": 16,
+      "qam": -1,
+      "last": 8,
+      "climb": 0,
+      "good": 8
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 8,
+     "state": null,
+     "after": {
+      "A": 1.5,
+      "decay": 0.06666667014360428,
+      "A_prev": 1.5,
+      "n": 17,
+      "qam": -1,
+      "last": 8,
+      "climb": 0,
+      "good": 8
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 8,
+     "state": null,
+     "after": {
+      "A": 1.5,
+      "decay": 0.06666667014360428,
+      "A_prev": 1.5,
+      "n": 18,
+      "qam": -1,
+      "last": 8,
+      "climb": 0,
+      "good": 8
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 8,
+     "state": null,
+     "after": {
+      "A": 1.5,
+      "decay": 0.06666667014360428,
+      "A_prev": 1.5,
+      "n": 19,
+      "qam": -1,
+      "last": 8,
+      "climb": 0,
+      "good": 8
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 8,
+     "state": null,
+     "after": {
+      "A": 1.5,
+      "decay": 0.06666667014360428,
+      "A_prev": 1.5,
+      "n": 20,
+      "qam": -1,
+      "last": 8,
+      "climb": 0,
+      "good": 8
+     }
+    },
+    {
+     "ev": "level_from_snr",
+     "level": 0,
+     "state": null,
+     "after": {
+      "A": 2.0,
+      "decay": 0.06666667014360428,
+      "A_prev": 1.5,
+      "n": 20,
+      "qam": -1,
+      "last": 8,
+      "climb": 0,
+      "good": 8
+     }
+    }
+   ]
+  },
+  {
+   "name": "no_increase_cases",
+   "bw": 2300,
+   "events": [
+    {
+     "ev": "ok",
+     "level": 4,
+     "state": null,
+     "after": {
+      "A": 1.9666666984558105,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 2,
+      "qam": -1,
+      "last": 4,
+      "climb": 0,
+      "good": 4
+     }
+    },
+    {
+     "ev": "lost",
+     "level": 5,
+     "state": 5,
+     "after": {
+      "A": 1.9666666984558105,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 2,
+      "qam": -1,
+      "last": 4,
+      "climb": 0,
+      "good": 4
+     }
+    },
+    {
+     "ev": "lost",
+     "level": 1,
+     "state": null,
+     "after": {
+      "A": 1.9666666984558105,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 0,
+      "qam": -1,
+      "last": 1,
+      "climb": 0,
+      "good": 4
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 1,
+     "state": null,
+     "after": {
+      "A": 1.933333396911621,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 1,
+      "qam": -1,
+      "last": 1,
+      "climb": 0,
+      "good": 1
+     }
+    },
+    {
+     "ev": "lost",
+     "level": 1,
+     "state": null,
+     "after": {
+      "A": 1.933333396911621,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 0,
+      "qam": -1,
+      "last": 1,
+      "climb": 0,
+      "good": 1
+     }
+    }
+   ]
+  },
+  {
+   "name": "qam_first_loss",
+   "bw": 2300,
+   "events": [
+    {
+     "ev": "ok",
+     "level": 14,
+     "state": null,
+     "after": {
+      "A": 1.9666666984558105,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 2,
+      "qam": -1,
+      "last": 14,
+      "climb": 0,
+      "good": 14
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 14,
+     "state": null,
+     "after": {
+      "A": 1.933333396911621,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 3,
+      "qam": -1,
+      "last": 14,
+      "climb": 0,
+      "good": 14
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 14,
+     "state": null,
+     "after": {
+      "A": 1.9000000953674316,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 4,
+      "qam": -1,
+      "last": 14,
+      "climb": 0,
+      "good": 14
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 14,
+     "state": null,
+     "after": {
+      "A": 1.8666667938232422,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 5,
+      "qam": -1,
+      "last": 14,
+      "climb": 0,
+      "good": 14
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 14,
+     "state": null,
+     "after": {
+      "A": 1.8333334922790527,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 6,
+      "qam": -1,
+      "last": 14,
+      "climb": 0,
+      "good": 14
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 14,
+     "state": null,
+     "after": {
+      "A": 1.8000001907348633,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 7,
+      "qam": -1,
+      "last": 14,
+      "climb": 0,
+      "good": 14
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 14,
+     "state": null,
+     "after": {
+      "A": 1.7666668891906738,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 8,
+      "qam": -1,
+      "last": 14,
+      "climb": 0,
+      "good": 14
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 14,
+     "state": null,
+     "after": {
+      "A": 1.7333335876464844,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 9,
+      "qam": -1,
+      "last": 14,
+      "climb": 0,
+      "good": 14
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 14,
+     "state": null,
+     "after": {
+      "A": 1.700000286102295,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 10,
+      "qam": -1,
+      "last": 14,
+      "climb": 0,
+      "good": 14
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 14,
+     "state": null,
+     "after": {
+      "A": 1.6666669845581055,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 11,
+      "qam": -1,
+      "last": 14,
+      "climb": 0,
+      "good": 14
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 14,
+     "state": null,
+     "after": {
+      "A": 1.633333683013916,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 12,
+      "qam": -1,
+      "last": 14,
+      "climb": 0,
+      "good": 14
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 14,
+     "state": null,
+     "after": {
+      "A": 1.6000003814697266,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 13,
+      "qam": -1,
+      "last": 14,
+      "climb": 0,
+      "good": 14
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 14,
+     "state": null,
+     "after": {
+      "A": 1.566667079925537,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 14,
+      "qam": -1,
+      "last": 14,
+      "climb": 0,
+      "good": 14
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 14,
+     "state": null,
+     "after": {
+      "A": 1.5333337783813477,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 15,
+      "qam": -1,
+      "last": 14,
+      "climb": 0,
+      "good": 14
+     }
+    },
+    {
+     "ev": "ok",
+     "level": 14,
+     "state": null,
+     "after": {
+      "A": 1.5000004768371582,
+      "decay": 0.03333333507180214,
+      "A_prev": 0.0,
+      "n": 16,
+      "qam": -1,
+      "last": 14,
+      "climb": 0,
+      "good": 14
+     }
+    },
+    {
+     "ev": "lost",
+     "level": 15,
+     "state": null,
+     "after": {
+      "A": 2.500000476837158,
+      "decay": 0.06666667014360428,
+      "A_prev": 1.5000004768371582,
+      "n": 0,
+      "qam": 0,
+      "last": 15,
+      "climb": 1,
+      "good": 14
+     }
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,4 @@
+[[profile.default.overrides]]
+filter = "binary(monitor_captures) | binary(rx_captures) | binary(fm_captures) | binary(monitor_link) | binary(fm_rx)"
+priority = 50
+slow-timeout = "120s"

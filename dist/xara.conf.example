@@ -1,0 +1,77 @@
+# to run xara you must:
+#  - set a call sign
+#  - choose HF or FM
+#  - pick a sound config
+#  - set radio and ptt (if using radio)
+#  - (optional) configure web UI
+#
+# we recommend using a system or user service to run xara
+#
+# system service
+#  - works well on a raspberry pi
+#  - use the ALSA sound config
+#  - save this file as /etc/xara/STATION.conf, readable by the xara user
+#
+#     systemctl enable --now xara@STATION
+#
+# user service
+#  - use this on your desktop
+#  - pipewire or pulse sound config
+#  - save this file as ~/.config/xara/xara.conf; xara run by hand reads it too
+#
+#     systemctl --user enable --now xara
+
+###
+# set your call
+
+#call = YOURCALL
+
+###
+# HF or FM (pick one)
+
+# HF: set hf = <500, 2300, or 2750>
+# FM: set fm = <narrow or wide>
+
+#hf = 2300
+#fm = narrow
+
+###
+# sound config (pick one)
+
+# ALSA
+# list devices: arecord -L / aplay -L
+#audio = alsa
+#capture = plughw:CARD=Device,DEV=0
+#playback = plughw:CARD=Device,DEV=0
+
+# pipewire/pulse
+# list devices: pactl list short sources / pactl list short sinks
+#capture = alsa_input.usb-XXXX
+#playback = alsa_output.usb-XXXX
+
+# null sinks only, no radio (can't be used with radio or ptt)
+#capture = xara_rx.monitor
+#playback = xara_tx
+
+###
+# radio and PTT
+
+#radio = on
+#drive-db = -10
+
+# CM108/AIOC GPIO, /dev/hidrawN numbers can change between boots
+#ptt = cm108:/dev/hidraw0
+
+# DTR on a USB serial port, use name from /dev/serial/by-id/
+#ptt = dtr:/dev/serial/by-id/usb-XXXX-if00
+
+###
+# web UI
+
+# xara logs http://...:8080/?token=... at startup, click it!
+# token is kept in /var/lib/xara/STATION/ui-token
+#ui-port = 8080
+#ui-addr = 0.0.0.0
+
+# WARNING: enabling this allows anyone with the token to key your rig
+#ui-control

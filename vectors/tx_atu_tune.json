@@ -1,0 +1,8 @@
+{
+ "atu_tone": {
+  "freq_hz": 1500.0,
+  "symbols": 70,
+  "samples": 143360,
+  "silent_tail_symbols": 24
+ }
+}

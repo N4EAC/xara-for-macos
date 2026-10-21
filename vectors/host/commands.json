@@ -1,0 +1,348 @@
+{
+ "call_rules": {
+  "valid": ["N0CALL", "N0CALL-1", "N0CALL-15", "N0CALL-19", "N0CALL-T", "N0CALL-L", "N0CALL1R", "n0call", "ABCDEFG-9"],
+  "invalid": ["N0CALL-0", "N0CALL-", "N0CALL-20", "N0CALL-A", "N0/CALL", "N0CALLXYZ", "N0CALL-1A"]
+ },
+ "vectors": [
+  {
+   "state": "idle",
+   "line": "VERSION",
+   "expect": ["VERSION VARA HF v4.9.0"]
+  },
+  {
+   "state": "idle",
+   "line": "version",
+   "expect": ["WRONG"]
+  },
+  {
+   "state": "idle",
+   "line": "VERSION ",
+   "expect": ["WRONG"]
+  },
+  {
+   "state": "idle",
+   "line": "",
+   "expect": ["WRONG"]
+  },
+  {
+   "state": "idle",
+   "line": "MYCALL N0CALL",
+   "expect": ["OK"]
+  },
+  {
+   "state": "idle",
+   "line": "MYCALL n0call N0CALL-T N0CALL-19 N0CALL-L N0CALL1R",
+   "expect": ["OK"]
+  },
+  {
+   "state": "idle",
+   "line": "MYCALL N0CALL-0",
+   "expect": ["WRONG", "OK"]
+  },
+  {
+   "state": "idle",
+   "line": "MYCALL N0CALL-20",
+   "expect": ["WRONG", "OK"]
+  },
+  {
+   "state": "idle",
+   "line": "MYCALL N0/CALL",
+   "expect": ["WRONG", "OK"]
+  },
+  {
+   "state": "idle",
+   "line": "MYCALL N0CALLXYZ",
+   "expect": ["WRONG", "OK"]
+  },
+  {
+   "state": "idle",
+   "line": "MYCALL A B C D E F",
+   "expect": ["WRONG", "OK"]
+  },
+  {
+   "state": "idle",
+   "line": "MYCALL  N0CALL",
+   "expect": ["WRONG", "OK"]
+  },
+  {
+   "state": "idle",
+   "line": "MYCALL",
+   "expect": ["WRONG"]
+  },
+  {
+   "state": "idle",
+   "line": "GATEWAY ON",
+   "expect": ["OK"]
+  },
+  {
+   "state": "idle",
+   "line": "GATEWAY OFF",
+   "expect": ["OK"]
+  },
+  {
+   "state": "idle",
+   "line": "GATEWAY",
+   "expect": ["WRONG"]
+  },
+  {
+   "state": "idle",
+   "line": "PUBLIC ON",
+   "expect": ["OK"]
+  },
+  {
+   "state": "idle",
+   "line": "CWID OFF",
+   "expect": ["OK"]
+  },
+  {
+   "state": "idle",
+   "line": "WINLINK SESSION",
+   "expect": ["OK"]
+  },
+  {
+   "state": "idle",
+   "line": "P2P SESSION",
+   "expect": ["OK"]
+  },
+  {
+   "state": "idle",
+   "line": "RETRIES 3",
+   "expect": ["OK"]
+  },
+  {
+   "state": "idle",
+   "line": "RETRIES 0",
+   "expect": ["OK"]
+  },
+  {
+   "state": "idle",
+   "line": "COMPRESSION ON",
+   "expect": ["OK"]
+  },
+  {
+   "state": "idle",
+   "line": "COMPRESSION FILES",
+   "expect": ["OK"]
+  },
+  {
+   "state": "idle",
+   "line": "COMPRESSION",
+   "expect": ["WRONG"]
+  },
+  {
+   "state": "idle",
+   "line": "IGNOREKISSDCD ON",
+   "expect": ["OK"]
+  },
+  {
+   "state": "idle",
+   "line": "BW500",
+   "expect": ["OK"]
+  },
+  {
+   "state": "idle",
+   "line": "BW 500",
+   "expect": ["WRONG"]
+  },
+  {
+   "state": "idle",
+   "line": "CHAT ON",
+   "expect": ["OK"]
+  },
+  {
+   "state": "idle",
+   "line": "LISTEN CQ",
+   "expect": ["OK"]
+  },
+  {
+   "state": "idle",
+   "line": "CHAT OFF",
+   "expect": ["OK"]
+  },
+  {
+   "state": "idle",
+   "line": "LISTEN ON",
+   "expect": ["OK"]
+  },
+  {
+   "state": "idle",
+   "line": "LISTEN OFF",
+   "expect": ["OK"]
+  },
+  {
+   "state": "idle",
+   "line": "TUNE ?",
+   "expect": ["TUNE -5"]
+  },
+  {
+   "state": "idle",
+   "line": "TUNE OFF",
+   "expect": ["OK"]
+  },
+  {
+   "state": "idle",
+   "line": "TUNE -6",
+   "expect": ["OK"]
+  },
+  {
+   "state": "idle",
+   "line": "DRIVELEVEL -7",
+   "expect": ["OK"]
+  },
+  {
+   "state": "idle",
+   "line": "CLEANTXBUFFER",
+   "expect": ["CLEANTXBUFFER BUFFEREMPTY"]
+  },
+  {
+   "state": "idle",
+   "line": "CQFRAME N0CALL 2300",
+   "expect": ["OK"]
+  },
+  {
+   "state": "idle",
+   "line": "CQFRAME N0CALL 999",
+   "expect": ["OK"]
+  },
+  {
+   "state": "idle",
+   "line": "CQFRAME N0CALL",
+   "expect": ["WRONG"]
+  },
+  {
+   "state": "idle",
+   "line": "CONNECT N0CALL",
+   "expect": ["WRONG"]
+  },
+  {
+   "state": "idle",
+   "line": "CONNECT N0CALL N1CALL X",
+   "expect": ["WRONG"]
+  },
+  {
+   "state": "idle",
+   "line": "CONNECT N0CALL N1CALL",
+   "expect": ["OK"]
+  },
+  {
+   "state": "idle",
+   "line": "DISCONNECT",
+   "expect": ["OK"]
+  },
+  {
+   "state": "idle",
+   "line": "ABORT",
+   "expect": ["OK"]
+  },
+  {
+   "state": "idle",
+   "line": "BUFFER",
+   "expect": ["WRONG"]
+  },
+  {
+   "state": "idle",
+   "line": "BITRATE",
+   "expect": ["WRONG"]
+  },
+  {
+   "state": "idle",
+   "line": "SN",
+   "expect": ["WRONG"]
+  },
+  {
+   "state": "idle",
+   "line": "ENCRYPTION ON",
+   "expect": ["WRONG"]
+  },
+  {
+   "state": "linked",
+   "line": "VERSION",
+   "expect": ["VERSION VARA HF v4.9.0"]
+  },
+  {
+   "state": "linked",
+   "line": "P2P SESSION",
+   "expect": ["OK"]
+  },
+  {
+   "state": "linked",
+   "line": "WINLINK SESSION",
+   "expect": ["OK"]
+  },
+  {
+   "state": "linked",
+   "line": "CHAT ON",
+   "expect": ["WRONG"]
+  },
+  {
+   "state": "linked",
+   "line": "CHAT OFF",
+   "expect": ["WRONG"]
+  },
+  {
+   "state": "linked",
+   "line": "LISTEN CQ",
+   "expect": ["WRONG"]
+  },
+  {
+   "state": "linked",
+   "line": "BW500",
+   "expect": ["WRONG"]
+  },
+  {
+   "state": "linked",
+   "line": "BW2750",
+   "expect": ["WRONG"]
+  },
+  {
+   "state": "linked",
+   "line": "CONNECT N0CALL N1CALL",
+   "expect": ["WRONG"]
+  },
+  {
+   "state": "linked",
+   "line": "CQFRAME N0CALL 2300",
+   "expect": ["WRONG"]
+  },
+  {
+   "state": "linked",
+   "line": "MYCALL N0CALL-5",
+   "expect": ["WRONG"]
+  },
+  {
+   "state": "linked",
+   "line": "COMPRESSION FILES",
+   "expect": ["OK"]
+  },
+  {
+   "state": "linked",
+   "line": "RETRIES 5",
+   "expect": ["OK"]
+  },
+  {
+   "state": "linked",
+   "line": "LISTEN ON",
+   "expect": ["OK"]
+  },
+  {
+   "state": "linked",
+   "line": "LISTEN OFF",
+   "expect": ["OK"]
+  },
+  {
+   "state": "linked",
+   "line": "CLEANTXBUFFER",
+   "expect": ["CLEANTXBUFFER FAILED "]
+  },
+  {
+   "state": "linked",
+   "line": "DISCONNECT",
+   "expect": ["OK"]
+  },
+  {
+   "state": "linked",
+   "line": "ABORT",
+   "expect": ["OK"]
+  }
+ ]
+}

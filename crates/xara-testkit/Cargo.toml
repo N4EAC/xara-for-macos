@@ -1,0 +1,9 @@
+[package]
+name = "xara-testkit"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Test-only JSON reader, SHA-256 and hex helpers for the xara workspace."

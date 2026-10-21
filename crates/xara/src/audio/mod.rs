@@ -1,0 +1,148 @@
+#[cfg(feature = "alsa")]
+pub mod alsa;
+#[cfg(feature = "pulse")]
+pub mod pulse;
+#[cfg(feature = "pulse")]
+mod pulse_ffi;
+
+#[cfg(not(any(feature = "pulse", feature = "alsa")))]
+compile_error!("xara needs an audio backend: enable the pulse or alsa feature");
+
+use std::collections::VecDeque;
+use std::io;
+use std::time::{Duration, Instant};
+
+pub const RATE: u32 = 48000;
+pub const BLOCK: usize = 480;
+pub(crate) const STALL: Duration = Duration::from_secs(1);
+
+pub type DeviceList = Vec<(String, String)>;
+
+fn capture_only() -> io::Error {
+    io::Error::new(io::ErrorKind::Unsupported, "write to a capture-only audio device")
+}
+
+fn remaining(until: Instant, what: &str) -> io::Result<Duration> {
+    until
+        .checked_duration_since(Instant::now())
+        .filter(|d| !d.is_zero())
+        .ok_or_else(|| io::Error::new(io::ErrorKind::TimedOut, format!("{what}: timed out")))
+}
+
+pub trait Audio {
+    fn read(&mut self, x: &mut [f64]) -> io::Result<()>;
+    fn write(&mut self, x: &[f64]) -> io::Result<()>;
+}
+
+pub struct TxAudio {
+    delay: VecDeque<f64>,
+}
+
+impl TxAudio {
+    pub fn new(lead_samples: usize) -> Self {
+        Self { delay: std::iter::repeat_n(0.0, lead_samples).collect() }
+    }
+
+    pub fn process(&mut self, out: &mut [f64], mute: bool) {
+        if mute {
+            out.fill(0.0);
+            self.delay.iter_mut().for_each(|v| *v = 0.0);
+        }
+        if !self.delay.is_empty() {
+            self.delay.extend(out.iter().copied());
+            for o in out.iter_mut() {
+                *o = self.delay.pop_front().unwrap();
+            }
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Backend {
+    Pulse,
+    Alsa,
+}
+
+impl Default for Backend {
+    fn default() -> Self {
+        if cfg!(feature = "pulse") { Self::Pulse } else { Self::Alsa }
+    }
+}
+
+impl std::str::FromStr for Backend {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, String> {
+        let b = match s {
+            "pulse" => Self::Pulse,
+            "alsa" => Self::Alsa,
+            _ => return Err(format!("--audio {s:?}: expected pulse or alsa")),
+        };
+        if b.built() { Ok(b) } else { Err(format!("--audio {s}: this xara was built without the {s} feature")) }
+    }
+}
+
+impl Backend {
+    pub fn built(self) -> bool {
+        match self {
+            Self::Pulse => cfg!(feature = "pulse"),
+            Self::Alsa => cfg!(feature = "alsa"),
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Pulse => "pulse",
+            Self::Alsa => "alsa",
+        }
+    }
+}
+
+#[cfg(not(all(feature = "pulse", feature = "alsa")))]
+fn unbuilt(b: Backend) -> io::Error {
+    io::Error::other(format!("this xara was built without the {} feature", b.name()))
+}
+
+pub fn open(b: Backend, capture: &str, playback: &str, radio: bool) -> io::Result<Box<dyn Audio>> {
+    match b {
+        #[cfg(feature = "pulse")]
+        Backend::Pulse => Ok(Box::new(pulse::PulseIo::open(capture, playback, radio)?)),
+        #[cfg(feature = "alsa")]
+        Backend::Alsa => Ok(Box::new(alsa::AlsaIo::open(capture, playback, radio)?)),
+        #[cfg(not(all(feature = "pulse", feature = "alsa")))]
+        _ => Err(unbuilt(b)),
+    }
+}
+
+pub fn check_playback(b: Backend, playback: &str, radio: bool) -> io::Result<()> {
+    match b {
+        #[cfg(feature = "pulse")]
+        Backend::Pulse => pulse::check(playback, radio),
+        #[cfg(feature = "alsa")]
+        Backend::Alsa => alsa::resolve_playback(playback, radio).map(drop),
+        #[cfg(not(all(feature = "pulse", feature = "alsa")))]
+        _ => Err(unbuilt(b)),
+    }
+}
+
+pub fn list(b: Backend) -> io::Result<(DeviceList, DeviceList)> {
+    match b {
+        #[cfg(feature = "pulse")]
+        Backend::Pulse => pulse::list(),
+        #[cfg(feature = "alsa")]
+        Backend::Alsa => alsa::list(),
+        #[cfg(not(all(feature = "pulse", feature = "alsa")))]
+        _ => Err(unbuilt(b)),
+    }
+}
+
+pub fn open_capture(b: Backend, capture: &str) -> io::Result<Box<dyn Audio>> {
+    match b {
+        #[cfg(feature = "pulse")]
+        Backend::Pulse => Ok(Box::new(pulse::PulseIo::open_capture(capture)?)),
+        #[cfg(feature = "alsa")]
+        Backend::Alsa => Ok(Box::new(alsa::AlsaIo::open_capture(capture)?)),
+        #[cfg(not(all(feature = "pulse", feature = "alsa")))]
+        _ => Err(unbuilt(b)),
+    }
+}

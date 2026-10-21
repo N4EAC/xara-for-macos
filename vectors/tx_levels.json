@@ -1,0 +1,1484 @@
+{
+ "rows": [
+  {
+   "waveform": "ctrl fmt0",
+   "drive_db": -30,
+   "tone_amplitude": 0.021404988450208395,
+   "peak_bound": 0.021404988450208395,
+   "rms": 0.015135612484362085
+  },
+  {
+   "waveform": "ctrl fmt1",
+   "drive_db": -30,
+   "tone_amplitude": 0.021404988450208395,
+   "peak_bound": 0.021404988450208395,
+   "rms": 0.015135612484362085
+  },
+  {
+   "waveform": "ctrl fmt2",
+   "drive_db": -30,
+   "tone_amplitude": 0.01148153621496883,
+   "peak_bound": 0.02296307242993766,
+   "rms": 0.01148153621496883
+  },
+  {
+   "waveform": "FSK data (all FSK levels, papr_db 3, ampNorm 1.41)",
+   "drive_db": -30,
+   "tone_amplitude": 0.021468953878527784,
+   "peak_bound": 0.021468953878527784,
+   "rms": 0.015180842872488226
+  },
+  {
+   "waveform": "CW ID",
+   "drive_db": -30,
+   "amp_1500": 0.016754056768814394,
+   "peak": 0.02290766277515644
+  },
+  {
+   "waveform": "TUNE (1500 Hz ALC test tone)",
+   "drive_db": -30,
+   "tone_amplitude": 0.021404988450208398
+  },
+  {
+   "waveform": "ATU tone (current ctrl format fmt1; the connect reply is fmt1)",
+   "drive_db": -30,
+   "tone_amplitude": 0.010702494225104197,
+   "peak_i16": 351
+  },
+  {
+   "waveform": "ATU tone (current ctrl format fmt2; the connect reply is fmt1)",
+   "drive_db": -30,
+   "tone_amplitude": 0.005740768107484415,
+   "peak_i16": 188
+  },
+  {
+   "waveform": "PSK data 500 L4",
+   "drive_db": -30,
+   "ampNorm": 0.61,
+   "gain": 0.013304544179780907,
+   "rms_expected": 0.013304544179780907
+  },
+  {
+   "waveform": "PSK data 500 L5",
+   "drive_db": -30,
+   "ampNorm": 0.61,
+   "gain": 0.013304544179780907,
+   "rms_expected": 0.013304544179780907
+  },
+  {
+   "waveform": "PSK data 500 L6",
+   "drive_db": -30,
+   "ampNorm": 1.22,
+   "gain": 0.010280162981264735,
+   "rms_expected": 0.010280162981264735
+  },
+  {
+   "waveform": "OFDM data 500 L7",
+   "drive_db": -30,
+   "ampNorm": 4.9678,
+   "gain": 0.009289663867799364,
+   "rms_expected": 0.008760153027334799
+  },
+  {
+   "waveform": "OFDM data 500 L8",
+   "drive_db": -30,
+   "ampNorm": 4.9678,
+   "gain": 0.009289663867799364,
+   "rms_expected": 0.008760153027334799
+  },
+  {
+   "waveform": "OFDM data 500 L9",
+   "drive_db": -30,
+   "ampNorm": 4.9678,
+   "gain": 0.009289663867799364,
+   "rms_expected": 0.008760153027334799
+  },
+  {
+   "waveform": "OFDM data 500 L10",
+   "drive_db": -30,
+   "ampNorm": 4.9678,
+   "gain": 0.009375620069258801,
+   "rms_expected": 0.008841209725311048
+  },
+  {
+   "waveform": "OFDM data 500 L11",
+   "drive_db": -30,
+   "ampNorm": 4.9678,
+   "gain": 0.009375620069258801,
+   "rms_expected": 0.008841209725311048
+  },
+  {
+   "waveform": "OFDM data 500 L12",
+   "drive_db": -30,
+   "ampNorm": 4.21,
+   "gain": 0.009375620069258801,
+   "rms_expected": 0.008841209725311048
+  },
+  {
+   "waveform": "OFDM data 500 L13",
+   "drive_db": -30,
+   "ampNorm": 4.67,
+   "gain": 0.009375620069258801,
+   "rms_expected": 0.008841209725311048
+  },
+  {
+   "waveform": "PSK data 2300 L5",
+   "drive_db": -30,
+   "ampNorm": 0.75,
+   "gain": 0.011376272858234315,
+   "rms_expected": 0.011376272858234315
+  },
+  {
+   "waveform": "PSK data 2300 L6",
+   "drive_db": -30,
+   "ampNorm": 0.86,
+   "gain": 0.010375284158180127,
+   "rms_expected": 0.010375284158180127
+  },
+  {
+   "waveform": "PSK data 2300 L7",
+   "drive_db": -30,
+   "ampNorm": 1.73,
+   "gain": 0.009120108393559097,
+   "rms_expected": 0.009120108393559097
+  },
+  {
+   "waveform": "PSK data 2300 L8",
+   "drive_db": -30,
+   "ampNorm": 2.0,
+   "gain": 0.009036494737223023,
+   "rms_expected": 0.009036494737223023
+  },
+  {
+   "waveform": "PSK data 2300 L9",
+   "drive_db": -30,
+   "ampNorm": 2.23,
+   "gain": 0.008790225168308843,
+   "rms_expected": 0.008790225168308843
+  },
+  {
+   "waveform": "OFDM data 2300 L10",
+   "drive_db": -30,
+   "ampNorm": 10.44435,
+   "gain": 0.008394599865193982,
+   "rms_expected": 0.007916107672877924
+  },
+  {
+   "waveform": "OFDM data 2300 L11",
+   "drive_db": -30,
+   "ampNorm": 10.44435,
+   "gain": 0.008394599865193982,
+   "rms_expected": 0.007916107672877924
+  },
+  {
+   "waveform": "OFDM data 2300 L12",
+   "drive_db": -30,
+   "ampNorm": 10.44435,
+   "gain": 0.008394599865193982,
+   "rms_expected": 0.007916107672877924
+  },
+  {
+   "waveform": "OFDM data 2300 L13",
+   "drive_db": -30,
+   "ampNorm": 10.44435,
+   "gain": 0.008394599865193982,
+   "rms_expected": 0.007916107672877924
+  },
+  {
+   "waveform": "OFDM data 2300 L14",
+   "drive_db": -30,
+   "ampNorm": 10.44435,
+   "gain": 0.008394599865193982,
+   "rms_expected": 0.007916107672877924
+  },
+  {
+   "waveform": "OFDM data 2300 L15",
+   "drive_db": -30,
+   "ampNorm": 8.82035,
+   "gain": 0.008472274141405963,
+   "rms_expected": 0.007989354515345824
+  },
+  {
+   "waveform": "OFDM data 2300 L16",
+   "drive_db": -30,
+   "ampNorm": 10.01805,
+   "gain": 0.008472274141405963,
+   "rms_expected": 0.007989354515345824
+  },
+  {
+   "waveform": "PSK data 2750 L5",
+   "drive_db": -30,
+   "ampNorm": 0.75,
+   "gain": 0.011376272858234315,
+   "rms_expected": 0.011376272858234315
+  },
+  {
+   "waveform": "PSK data 2750 L6",
+   "drive_db": -30,
+   "ampNorm": 0.86,
+   "gain": 0.010375284158180127,
+   "rms_expected": 0.010375284158180127
+  },
+  {
+   "waveform": "PSK data 2750 L7",
+   "drive_db": -30,
+   "ampNorm": 1.73,
+   "gain": 0.009204495717531713,
+   "rms_expected": 0.009204495717531713
+  },
+  {
+   "waveform": "PSK data 2750 L8",
+   "drive_db": -30,
+   "ampNorm": 2.0,
+   "gain": 0.008953647655495937,
+   "rms_expected": 0.008953647655495937
+  },
+  {
+   "waveform": "PSK data 2750 L9",
+   "drive_db": -30,
+   "ampNorm": 2.23,
+   "gain": 0.008871560120379608,
+   "rms_expected": 0.008871560120379608
+  },
+  {
+   "waveform": "PSK data 2750 L10",
+   "drive_db": -30,
+   "ampNorm": 2.5422,
+   "gain": 0.008871560120379608,
+   "rms_expected": 0.008871560120379608
+  },
+  {
+   "waveform": "OFDM data 2750 L11",
+   "drive_db": -30,
+   "ampNorm": 11.4219,
+   "gain": 0.008472274141405963,
+   "rms_expected": 0.007989354515345824
+  },
+  {
+   "waveform": "OFDM data 2750 L12",
+   "drive_db": -30,
+   "ampNorm": 11.4219,
+   "gain": 0.008472274141405963,
+   "rms_expected": 0.007989354515345824
+  },
+  {
+   "waveform": "OFDM data 2750 L13",
+   "drive_db": -30,
+   "ampNorm": 11.4219,
+   "gain": 0.008394599865193982,
+   "rms_expected": 0.007916107672877924
+  },
+  {
+   "waveform": "OFDM data 2750 L14",
+   "drive_db": -30,
+   "ampNorm": 11.4219,
+   "gain": 0.008317637711026709,
+   "rms_expected": 0.007843532361498186
+  },
+  {
+   "waveform": "OFDM data 2750 L15",
+   "drive_db": -30,
+   "ampNorm": 11.4219,
+   "gain": 0.008317637711026709,
+   "rms_expected": 0.007843532361498186
+  },
+  {
+   "waveform": "OFDM data 2750 L16",
+   "drive_db": -30,
+   "ampNorm": 9.6459,
+   "gain": 0.008472274141405963,
+   "rms_expected": 0.007989354515345824
+  },
+  {
+   "waveform": "OFDM data 2750 L17",
+   "drive_db": -30,
+   "ampNorm": 10.9557,
+   "gain": 0.008472274141405963,
+   "rms_expected": 0.007989354515345824
+  },
+  {
+   "waveform": "ctrl fmt0",
+   "drive_db": -20,
+   "tone_amplitude": 0.0676885167922562,
+   "peak_bound": 0.0676885167922562,
+   "rms": 0.04786300923226385
+  },
+  {
+   "waveform": "ctrl fmt1",
+   "drive_db": -20,
+   "tone_amplitude": 0.0676885167922562,
+   "peak_bound": 0.0676885167922562,
+   "rms": 0.04786300923226385
+  },
+  {
+   "waveform": "ctrl fmt2",
+   "drive_db": -20,
+   "tone_amplitude": 0.03630780547701014,
+   "peak_bound": 0.07261561095402028,
+   "rms": 0.03630780547701014
+  },
+  {
+   "waveform": "FSK data (all FSK levels, papr_db 3, ampNorm 1.41)",
+   "drive_db": -20,
+   "tone_amplitude": 0.0678907932372537,
+   "peak_bound": 0.0678907932372537,
+   "rms": 0.04800604027819588
+  },
+  {
+   "waveform": "CW ID",
+   "drive_db": -20,
+   "amp_1500": 0.05298097943721458,
+   "peak": 0.07244039024054799
+  },
+  {
+   "waveform": "TUNE (1500 Hz ALC test tone)",
+   "drive_db": -20,
+   "tone_amplitude": 0.06768851679225621
+  },
+  {
+   "waveform": "ATU tone (current ctrl format fmt1; the connect reply is fmt1)",
+   "drive_db": -20,
+   "tone_amplitude": 0.0338442583961281,
+   "peak_i16": 1109
+  },
+  {
+   "waveform": "ATU tone (current ctrl format fmt2; the connect reply is fmt1)",
+   "drive_db": -20,
+   "tone_amplitude": 0.01815390273850507,
+   "peak_i16": 595
+  },
+  {
+   "waveform": "PSK data 500 L4",
+   "drive_db": -20,
+   "ampNorm": 0.61,
+   "gain": 0.04207266283844442,
+   "rms_expected": 0.04207266283844442
+  },
+  {
+   "waveform": "PSK data 500 L5",
+   "drive_db": -20,
+   "ampNorm": 0.61,
+   "gain": 0.04207266283844442,
+   "rms_expected": 0.04207266283844442
+  },
+  {
+   "waveform": "PSK data 500 L6",
+   "drive_db": -20,
+   "ampNorm": 1.22,
+   "gain": 0.032508729738543435,
+   "rms_expected": 0.032508729738543435
+  },
+  {
+   "waveform": "OFDM data 500 L7",
+   "drive_db": -20,
+   "ampNorm": 4.9678,
+   "gain": 0.029376496519615308,
+   "rms_expected": 0.027702036217997234
+  },
+  {
+   "waveform": "OFDM data 500 L8",
+   "drive_db": -20,
+   "ampNorm": 4.9678,
+   "gain": 0.029376496519615308,
+   "rms_expected": 0.027702036217997234
+  },
+  {
+   "waveform": "OFDM data 500 L9",
+   "drive_db": -20,
+   "ampNorm": 4.9678,
+   "gain": 0.029376496519615308,
+   "rms_expected": 0.027702036217997234
+  },
+  {
+   "waveform": "OFDM data 500 L10",
+   "drive_db": -20,
+   "ampNorm": 4.9678,
+   "gain": 0.029648313895243424,
+   "rms_expected": 0.027958360003214548
+  },
+  {
+   "waveform": "OFDM data 500 L11",
+   "drive_db": -20,
+   "ampNorm": 4.9678,
+   "gain": 0.029648313895243424,
+   "rms_expected": 0.027958360003214548
+  },
+  {
+   "waveform": "OFDM data 500 L12",
+   "drive_db": -20,
+   "ampNorm": 4.21,
+   "gain": 0.029648313895243424,
+   "rms_expected": 0.027958360003214548
+  },
+  {
+   "waveform": "OFDM data 500 L13",
+   "drive_db": -20,
+   "ampNorm": 4.67,
+   "gain": 0.029648313895243424,
+   "rms_expected": 0.027958360003214548
+  },
+  {
+   "waveform": "PSK data 2300 L5",
+   "drive_db": -20,
+   "ampNorm": 0.75,
+   "gain": 0.03597493351557424,
+   "rms_expected": 0.03597493351557424
+  },
+  {
+   "waveform": "PSK data 2300 L6",
+   "drive_db": -20,
+   "ampNorm": 0.86,
+   "gain": 0.032809529311311904,
+   "rms_expected": 0.032809529311311904
+  },
+  {
+   "waveform": "PSK data 2300 L7",
+   "drive_db": -20,
+   "ampNorm": 1.73,
+   "gain": 0.028840315031266057,
+   "rms_expected": 0.028840315031266057
+  },
+  {
+   "waveform": "PSK data 2300 L8",
+   "drive_db": -20,
+   "ampNorm": 2.0,
+   "gain": 0.028575905433749466,
+   "rms_expected": 0.028575905433749466
+  },
+  {
+   "waveform": "PSK data 2300 L9",
+   "drive_db": -20,
+   "ampNorm": 2.23,
+   "gain": 0.027797132677592883,
+   "rms_expected": 0.027797132677592883
+  },
+  {
+   "waveform": "OFDM data 2300 L10",
+   "drive_db": -20,
+   "ampNorm": 10.44435,
+   "gain": 0.02654605561975539,
+   "rms_expected": 0.02503293044942933
+  },
+  {
+   "waveform": "OFDM data 2300 L11",
+   "drive_db": -20,
+   "ampNorm": 10.44435,
+   "gain": 0.02654605561975539,
+   "rms_expected": 0.02503293044942933
+  },
+  {
+   "waveform": "OFDM data 2300 L12",
+   "drive_db": -20,
+   "ampNorm": 10.44435,
+   "gain": 0.02654605561975539,
+   "rms_expected": 0.02503293044942933
+  },
+  {
+   "waveform": "OFDM data 2300 L13",
+   "drive_db": -20,
+   "ampNorm": 10.44435,
+   "gain": 0.02654605561975539,
+   "rms_expected": 0.02503293044942933
+  },
+  {
+   "waveform": "OFDM data 2300 L14",
+   "drive_db": -20,
+   "ampNorm": 10.44435,
+   "gain": 0.02654605561975539,
+   "rms_expected": 0.02503293044942933
+  },
+  {
+   "waveform": "OFDM data 2300 L15",
+   "drive_db": -20,
+   "ampNorm": 8.82035,
+   "gain": 0.026791683248190316,
+   "rms_expected": 0.025264557303043465
+  },
+  {
+   "waveform": "OFDM data 2300 L16",
+   "drive_db": -20,
+   "ampNorm": 10.01805,
+   "gain": 0.026791683248190316,
+   "rms_expected": 0.025264557303043465
+  },
+  {
+   "waveform": "PSK data 2750 L5",
+   "drive_db": -20,
+   "ampNorm": 0.75,
+   "gain": 0.03597493351557424,
+   "rms_expected": 0.03597493351557424
+  },
+  {
+   "waveform": "PSK data 2750 L6",
+   "drive_db": -20,
+   "ampNorm": 0.86,
+   "gain": 0.032809529311311904,
+   "rms_expected": 0.032809529311311904
+  },
+  {
+   "waveform": "PSK data 2750 L7",
+   "drive_db": -20,
+   "ampNorm": 1.73,
+   "gain": 0.029107171180666053,
+   "rms_expected": 0.029107171180666053
+  },
+  {
+   "waveform": "PSK data 2750 L8",
+   "drive_db": -20,
+   "ampNorm": 2.0,
+   "gain": 0.02831391995799379,
+   "rms_expected": 0.02831391995799379
+  },
+  {
+   "waveform": "PSK data 2750 L9",
+   "drive_db": -20,
+   "ampNorm": 2.23,
+   "gain": 0.028054336379517132,
+   "rms_expected": 0.028054336379517132
+  },
+  {
+   "waveform": "PSK data 2750 L10",
+   "drive_db": -20,
+   "ampNorm": 2.5422,
+   "gain": 0.028054336379517132,
+   "rms_expected": 0.028054336379517132
+  },
+  {
+   "waveform": "OFDM data 2750 L11",
+   "drive_db": -20,
+   "ampNorm": 11.4219,
+   "gain": 0.026791683248190316,
+   "rms_expected": 0.025264557303043465
+  },
+  {
+   "waveform": "OFDM data 2750 L12",
+   "drive_db": -20,
+   "ampNorm": 11.4219,
+   "gain": 0.026791683248190316,
+   "rms_expected": 0.025264557303043465
+  },
+  {
+   "waveform": "OFDM data 2750 L13",
+   "drive_db": -20,
+   "ampNorm": 11.4219,
+   "gain": 0.02654605561975539,
+   "rms_expected": 0.02503293044942933
+  },
+  {
+   "waveform": "OFDM data 2750 L14",
+   "drive_db": -20,
+   "ampNorm": 11.4219,
+   "gain": 0.026302679918953815,
+   "rms_expected": 0.024803427163573446
+  },
+  {
+   "waveform": "OFDM data 2750 L15",
+   "drive_db": -20,
+   "ampNorm": 11.4219,
+   "gain": 0.026302679918953815,
+   "rms_expected": 0.024803427163573446
+  },
+  {
+   "waveform": "OFDM data 2750 L16",
+   "drive_db": -20,
+   "ampNorm": 9.6459,
+   "gain": 0.026791683248190316,
+   "rms_expected": 0.025264557303043465
+  },
+  {
+   "waveform": "OFDM data 2750 L17",
+   "drive_db": -20,
+   "ampNorm": 10.9557,
+   "gain": 0.026791683248190316,
+   "rms_expected": 0.025264557303043465
+  },
+  {
+   "waveform": "ctrl fmt0",
+   "drive_db": -10,
+   "tone_amplitude": 0.2140498845020839,
+   "peak_bound": 0.2140498845020839,
+   "rms": 0.15135612484362082
+  },
+  {
+   "waveform": "ctrl fmt1",
+   "drive_db": -10,
+   "tone_amplitude": 0.2140498845020839,
+   "peak_bound": 0.2140498845020839,
+   "rms": 0.15135612484362082
+  },
+  {
+   "waveform": "ctrl fmt2",
+   "drive_db": -10,
+   "tone_amplitude": 0.11481536214968827,
+   "peak_bound": 0.22963072429937653,
+   "rms": 0.11481536214968827
+  },
+  {
+   "waveform": "FSK data (all FSK levels, papr_db 3, ampNorm 1.41)",
+   "drive_db": -10,
+   "tone_amplitude": 0.21468953878527777,
+   "peak_bound": 0.21468953878527777,
+   "rms": 0.1518084287248822
+  },
+  {
+   "waveform": "CW ID",
+   "drive_db": -10,
+   "amp_1500": 0.1675405676881439,
+   "peak": 0.22907662775156434
+  },
+  {
+   "waveform": "TUNE (1500 Hz ALC test tone)",
+   "drive_db": -10,
+   "tone_amplitude": 0.21404988450208393
+  },
+  {
+   "waveform": "ATU tone (current ctrl format fmt1; the connect reply is fmt1)",
+   "drive_db": -10,
+   "tone_amplitude": 0.10702494225104195,
+   "peak_i16": 3507
+  },
+  {
+   "waveform": "ATU tone (current ctrl format fmt2; the connect reply is fmt1)",
+   "drive_db": -10,
+   "tone_amplitude": 0.05740768107484413,
+   "peak_i16": 1881
+  },
+  {
+   "waveform": "PSK data 500 L4",
+   "drive_db": -10,
+   "ampNorm": 0.61,
+   "gain": 0.1330454417978091,
+   "rms_expected": 0.1330454417978091
+  },
+  {
+   "waveform": "PSK data 500 L5",
+   "drive_db": -10,
+   "ampNorm": 0.61,
+   "gain": 0.1330454417978091,
+   "rms_expected": 0.1330454417978091
+  },
+  {
+   "waveform": "PSK data 500 L6",
+   "drive_db": -10,
+   "ampNorm": 1.22,
+   "gain": 0.10280162981264739,
+   "rms_expected": 0.10280162981264739
+  },
+  {
+   "waveform": "OFDM data 500 L7",
+   "drive_db": -10,
+   "ampNorm": 4.9678,
+   "gain": 0.09289663867799362,
+   "rms_expected": 0.08760153027334798
+  },
+  {
+   "waveform": "OFDM data 500 L8",
+   "drive_db": -10,
+   "ampNorm": 4.9678,
+   "gain": 0.09289663867799362,
+   "rms_expected": 0.08760153027334798
+  },
+  {
+   "waveform": "OFDM data 500 L9",
+   "drive_db": -10,
+   "ampNorm": 4.9678,
+   "gain": 0.09289663867799362,
+   "rms_expected": 0.08760153027334798
+  },
+  {
+   "waveform": "OFDM data 500 L10",
+   "drive_db": -10,
+   "ampNorm": 4.9678,
+   "gain": 0.09375620069258803,
+   "rms_expected": 0.0884120972531105
+  },
+  {
+   "waveform": "OFDM data 500 L11",
+   "drive_db": -10,
+   "ampNorm": 4.9678,
+   "gain": 0.09375620069258803,
+   "rms_expected": 0.0884120972531105
+  },
+  {
+   "waveform": "OFDM data 500 L12",
+   "drive_db": -10,
+   "ampNorm": 4.21,
+   "gain": 0.09375620069258803,
+   "rms_expected": 0.0884120972531105
+  },
+  {
+   "waveform": "OFDM data 500 L13",
+   "drive_db": -10,
+   "ampNorm": 4.67,
+   "gain": 0.09375620069258803,
+   "rms_expected": 0.0884120972531105
+  },
+  {
+   "waveform": "PSK data 2300 L5",
+   "drive_db": -10,
+   "ampNorm": 0.75,
+   "gain": 0.1137627285823431,
+   "rms_expected": 0.1137627285823431
+  },
+  {
+   "waveform": "PSK data 2300 L6",
+   "drive_db": -10,
+   "ampNorm": 0.86,
+   "gain": 0.10375284158180126,
+   "rms_expected": 0.10375284158180126
+  },
+  {
+   "waveform": "PSK data 2300 L7",
+   "drive_db": -10,
+   "ampNorm": 1.73,
+   "gain": 0.09120108393559097,
+   "rms_expected": 0.09120108393559097
+  },
+  {
+   "waveform": "PSK data 2300 L8",
+   "drive_db": -10,
+   "ampNorm": 2.0,
+   "gain": 0.09036494737223014,
+   "rms_expected": 0.09036494737223014
+  },
+  {
+   "waveform": "PSK data 2300 L9",
+   "drive_db": -10,
+   "ampNorm": 2.23,
+   "gain": 0.08790225168308842,
+   "rms_expected": 0.08790225168308842
+  },
+  {
+   "waveform": "OFDM data 2300 L10",
+   "drive_db": -10,
+   "ampNorm": 10.44435,
+   "gain": 0.08394599865193973,
+   "rms_expected": 0.07916107672877916
+  },
+  {
+   "waveform": "OFDM data 2300 L11",
+   "drive_db": -10,
+   "ampNorm": 10.44435,
+   "gain": 0.08394599865193973,
+   "rms_expected": 0.07916107672877916
+  },
+  {
+   "waveform": "OFDM data 2300 L12",
+   "drive_db": -10,
+   "ampNorm": 10.44435,
+   "gain": 0.08394599865193973,
+   "rms_expected": 0.07916107672877916
+  },
+  {
+   "waveform": "OFDM data 2300 L13",
+   "drive_db": -10,
+   "ampNorm": 10.44435,
+   "gain": 0.08394599865193973,
+   "rms_expected": 0.07916107672877916
+  },
+  {
+   "waveform": "OFDM data 2300 L14",
+   "drive_db": -10,
+   "ampNorm": 10.44435,
+   "gain": 0.08394599865193973,
+   "rms_expected": 0.07916107672877916
+  },
+  {
+   "waveform": "OFDM data 2300 L15",
+   "drive_db": -10,
+   "ampNorm": 8.82035,
+   "gain": 0.08472274141405964,
+   "rms_expected": 0.07989354515345823
+  },
+  {
+   "waveform": "OFDM data 2300 L16",
+   "drive_db": -10,
+   "ampNorm": 10.01805,
+   "gain": 0.08472274141405964,
+   "rms_expected": 0.07989354515345823
+  },
+  {
+   "waveform": "PSK data 2750 L5",
+   "drive_db": -10,
+   "ampNorm": 0.75,
+   "gain": 0.1137627285823431,
+   "rms_expected": 0.1137627285823431
+  },
+  {
+   "waveform": "PSK data 2750 L6",
+   "drive_db": -10,
+   "ampNorm": 0.86,
+   "gain": 0.10375284158180126,
+   "rms_expected": 0.10375284158180126
+  },
+  {
+   "waveform": "PSK data 2750 L7",
+   "drive_db": -10,
+   "ampNorm": 1.73,
+   "gain": 0.09204495717531712,
+   "rms_expected": 0.09204495717531712
+  },
+  {
+   "waveform": "PSK data 2750 L8",
+   "drive_db": -10,
+   "ampNorm": 2.0,
+   "gain": 0.08953647655495937,
+   "rms_expected": 0.08953647655495937
+  },
+  {
+   "waveform": "PSK data 2750 L9",
+   "drive_db": -10,
+   "ampNorm": 2.23,
+   "gain": 0.08871560120379608,
+   "rms_expected": 0.08871560120379608
+  },
+  {
+   "waveform": "PSK data 2750 L10",
+   "drive_db": -10,
+   "ampNorm": 2.5422,
+   "gain": 0.08871560120379608,
+   "rms_expected": 0.08871560120379608
+  },
+  {
+   "waveform": "OFDM data 2750 L11",
+   "drive_db": -10,
+   "ampNorm": 11.4219,
+   "gain": 0.08472274141405964,
+   "rms_expected": 0.07989354515345823
+  },
+  {
+   "waveform": "OFDM data 2750 L12",
+   "drive_db": -10,
+   "ampNorm": 11.4219,
+   "gain": 0.08472274141405964,
+   "rms_expected": 0.07989354515345823
+  },
+  {
+   "waveform": "OFDM data 2750 L13",
+   "drive_db": -10,
+   "ampNorm": 11.4219,
+   "gain": 0.08394599865193973,
+   "rms_expected": 0.07916107672877916
+  },
+  {
+   "waveform": "OFDM data 2750 L14",
+   "drive_db": -10,
+   "ampNorm": 11.4219,
+   "gain": 0.08317637711026708,
+   "rms_expected": 0.07843532361498186
+  },
+  {
+   "waveform": "OFDM data 2750 L15",
+   "drive_db": -10,
+   "ampNorm": 11.4219,
+   "gain": 0.08317637711026708,
+   "rms_expected": 0.07843532361498186
+  },
+  {
+   "waveform": "OFDM data 2750 L16",
+   "drive_db": -10,
+   "ampNorm": 9.6459,
+   "gain": 0.08472274141405964,
+   "rms_expected": 0.07989354515345823
+  },
+  {
+   "waveform": "OFDM data 2750 L17",
+   "drive_db": -10,
+   "ampNorm": 10.9557,
+   "gain": 0.08472274141405964,
+   "rms_expected": 0.07989354515345823
+  },
+  {
+   "waveform": "ctrl fmt0",
+   "drive_db": -5,
+   "tone_amplitude": 0.3806405023312653,
+   "peak_bound": 0.3806405023312653,
+   "rms": 0.26915348039269155
+  },
+  {
+   "waveform": "ctrl fmt1",
+   "drive_db": -5,
+   "tone_amplitude": 0.3806405023312653,
+   "peak_bound": 0.3806405023312653,
+   "rms": 0.26915348039269155
+  },
+  {
+   "waveform": "ctrl fmt2",
+   "drive_db": -5,
+   "tone_amplitude": 0.2041737944669529,
+   "peak_bound": 0.4083475889339058,
+   "rms": 0.2041737944669529
+  },
+  {
+   "waveform": "FSK data (all FSK levels, papr_db 3, ampNorm 1.41)",
+   "drive_db": -5,
+   "tone_amplitude": 0.3817779863726121,
+   "peak_bound": 0.3817779863726121,
+   "rms": 0.2699578030718193
+  },
+  {
+   "waveform": "CW ID",
+   "drive_db": -5,
+   "amp_1500": 0.2979339418660588,
+   "peak": 0.40736225045175783
+  },
+  {
+   "waveform": "TUNE (1500 Hz ALC test tone)",
+   "drive_db": -5,
+   "tone_amplitude": 0.38064050233126534
+  },
+  {
+   "waveform": "ATU tone (current ctrl format fmt1; the connect reply is fmt1)",
+   "drive_db": -5,
+   "tone_amplitude": 0.19032025116563264,
+   "peak_i16": 6236
+  },
+  {
+   "waveform": "ATU tone (current ctrl format fmt2; the connect reply is fmt1)",
+   "drive_db": -5,
+   "tone_amplitude": 0.10208689723347646,
+   "peak_i16": 3345
+  },
+  {
+   "waveform": "PSK data 500 L4",
+   "drive_db": -5,
+   "ampNorm": 0.61,
+   "gain": 0.23659196974857583,
+   "rms_expected": 0.23659196974857583
+  },
+  {
+   "waveform": "PSK data 500 L5",
+   "drive_db": -5,
+   "ampNorm": 0.61,
+   "gain": 0.23659196974857583,
+   "rms_expected": 0.23659196974857583
+  },
+  {
+   "waveform": "PSK data 500 L6",
+   "drive_db": -5,
+   "ampNorm": 1.22,
+   "gain": 0.1828100216142743,
+   "rms_expected": 0.1828100216142743
+  },
+  {
+   "waveform": "OFDM data 500 L7",
+   "drive_db": -5,
+   "ampNorm": 4.9678,
+   "gain": 0.1651961798229015,
+   "rms_expected": 0.1557799975729961
+  },
+  {
+   "waveform": "OFDM data 500 L8",
+   "drive_db": -5,
+   "ampNorm": 4.9678,
+   "gain": 0.1651961798229015,
+   "rms_expected": 0.1557799975729961
+  },
+  {
+   "waveform": "OFDM data 500 L9",
+   "drive_db": -5,
+   "ampNorm": 4.9678,
+   "gain": 0.1651961798229015,
+   "rms_expected": 0.1557799975729961
+  },
+  {
+   "waveform": "OFDM data 500 L10",
+   "drive_db": -5,
+   "ampNorm": 4.9678,
+   "gain": 0.16672472125510632,
+   "rms_expected": 0.15722141214356525
+  },
+  {
+   "waveform": "OFDM data 500 L11",
+   "drive_db": -5,
+   "ampNorm": 4.9678,
+   "gain": 0.16672472125510632,
+   "rms_expected": 0.15722141214356525
+  },
+  {
+   "waveform": "OFDM data 500 L12",
+   "drive_db": -5,
+   "ampNorm": 4.21,
+   "gain": 0.16672472125510632,
+   "rms_expected": 0.15722141214356525
+  },
+  {
+   "waveform": "OFDM data 500 L13",
+   "drive_db": -5,
+   "ampNorm": 4.67,
+   "gain": 0.16672472125510632,
+   "rms_expected": 0.15722141214356525
+  },
+  {
+   "waveform": "PSK data 2300 L5",
+   "drive_db": -5,
+   "ampNorm": 0.75,
+   "gain": 0.2023019178678272,
+   "rms_expected": 0.2023019178678272
+  },
+  {
+   "waveform": "PSK data 2300 L6",
+   "drive_db": -5,
+   "ampNorm": 0.86,
+   "gain": 0.18450154191794738,
+   "rms_expected": 0.18450154191794738
+  },
+  {
+   "waveform": "PSK data 2300 L7",
+   "drive_db": -5,
+   "ampNorm": 1.73,
+   "gain": 0.16218100973589297,
+   "rms_expected": 0.16218100973589297
+  },
+  {
+   "waveform": "PSK data 2300 L8",
+   "drive_db": -5,
+   "ampNorm": 2.0,
+   "gain": 0.16069412530128777,
+   "rms_expected": 0.16069412530128777
+  },
+  {
+   "waveform": "PSK data 2300 L9",
+   "drive_db": -5,
+   "ampNorm": 2.23,
+   "gain": 0.15631476426409538,
+   "rms_expected": 0.15631476426409538
+  },
+  {
+   "waveform": "OFDM data 2300 L10",
+   "drive_db": -5,
+   "ampNorm": 10.44435,
+   "gain": 0.14927944095789963,
+   "rms_expected": 0.14077051282329936
+  },
+  {
+   "waveform": "OFDM data 2300 L11",
+   "drive_db": -5,
+   "ampNorm": 10.44435,
+   "gain": 0.14927944095789963,
+   "rms_expected": 0.14077051282329936
+  },
+  {
+   "waveform": "OFDM data 2300 L12",
+   "drive_db": -5,
+   "ampNorm": 10.44435,
+   "gain": 0.14927944095789963,
+   "rms_expected": 0.14077051282329936
+  },
+  {
+   "waveform": "OFDM data 2300 L13",
+   "drive_db": -5,
+   "ampNorm": 10.44435,
+   "gain": 0.14927944095789963,
+   "rms_expected": 0.14077051282329936
+  },
+  {
+   "waveform": "OFDM data 2300 L14",
+   "drive_db": -5,
+   "ampNorm": 10.44435,
+   "gain": 0.14927944095789963,
+   "rms_expected": 0.14077051282329936
+  },
+  {
+   "waveform": "OFDM data 2300 L15",
+   "drive_db": -5,
+   "ampNorm": 8.82035,
+   "gain": 0.15066070661867417,
+   "rms_expected": 0.14207304634140974
+  },
+  {
+   "waveform": "OFDM data 2300 L16",
+   "drive_db": -5,
+   "ampNorm": 10.01805,
+   "gain": 0.15066070661867417,
+   "rms_expected": 0.14207304634140974
+  },
+  {
+   "waveform": "PSK data 2750 L5",
+   "drive_db": -5,
+   "ampNorm": 0.75,
+   "gain": 0.2023019178678272,
+   "rms_expected": 0.2023019178678272
+  },
+  {
+   "waveform": "PSK data 2750 L6",
+   "drive_db": -5,
+   "ampNorm": 0.86,
+   "gain": 0.18450154191794738,
+   "rms_expected": 0.18450154191794738
+  },
+  {
+   "waveform": "PSK data 2750 L7",
+   "drive_db": -5,
+   "ampNorm": 1.73,
+   "gain": 0.16368165214278085,
+   "rms_expected": 0.16368165214278085
+  },
+  {
+   "waveform": "PSK data 2750 L8",
+   "drive_db": -5,
+   "ampNorm": 2.0,
+   "gain": 0.15922087270511703,
+   "rms_expected": 0.15922087270511703
+  },
+  {
+   "waveform": "PSK data 2750 L9",
+   "drive_db": -5,
+   "ampNorm": 2.23,
+   "gain": 0.15776112696993488,
+   "rms_expected": 0.15776112696993488
+  },
+  {
+   "waveform": "PSK data 2750 L10",
+   "drive_db": -5,
+   "ampNorm": 2.5422,
+   "gain": 0.15776112696993488,
+   "rms_expected": 0.15776112696993488
+  },
+  {
+   "waveform": "OFDM data 2750 L11",
+   "drive_db": -5,
+   "ampNorm": 11.4219,
+   "gain": 0.15066070661867417,
+   "rms_expected": 0.14207304634140974
+  },
+  {
+   "waveform": "OFDM data 2750 L12",
+   "drive_db": -5,
+   "ampNorm": 11.4219,
+   "gain": 0.15066070661867417,
+   "rms_expected": 0.14207304634140974
+  },
+  {
+   "waveform": "OFDM data 2750 L13",
+   "drive_db": -5,
+   "ampNorm": 11.4219,
+   "gain": 0.14927944095789963,
+   "rms_expected": 0.14077051282329936
+  },
+  {
+   "waveform": "OFDM data 2750 L14",
+   "drive_db": -5,
+   "ampNorm": 11.4219,
+   "gain": 0.1479108388168207,
+   "rms_expected": 0.13947992100426193
+  },
+  {
+   "waveform": "OFDM data 2750 L15",
+   "drive_db": -5,
+   "ampNorm": 11.4219,
+   "gain": 0.1479108388168207,
+   "rms_expected": 0.13947992100426193
+  },
+  {
+   "waveform": "OFDM data 2750 L16",
+   "drive_db": -5,
+   "ampNorm": 9.6459,
+   "gain": 0.15066070661867417,
+   "rms_expected": 0.14207304634140974
+  },
+  {
+   "waveform": "OFDM data 2750 L17",
+   "drive_db": -5,
+   "ampNorm": 10.9557,
+   "gain": 0.15066070661867417,
+   "rms_expected": 0.14207304634140974
+  },
+  {
+   "waveform": "ctrl fmt0",
+   "drive_db": 0,
+   "tone_amplitude": 0.6768851679225616,
+   "peak_bound": 0.6768851679225616,
+   "rms": 0.47863009232263826
+  },
+  {
+   "waveform": "ctrl fmt1",
+   "drive_db": 0,
+   "tone_amplitude": 0.6768851679225616,
+   "peak_bound": 0.6768851679225616,
+   "rms": 0.47863009232263826
+  },
+  {
+   "waveform": "ctrl fmt2",
+   "drive_db": 0,
+   "tone_amplitude": 0.3630780547701013,
+   "peak_bound": 0.7261561095402026,
+   "rms": 0.3630780547701013
+  },
+  {
+   "waveform": "FSK data (all FSK levels, papr_db 3, ampNorm 1.41)",
+   "drive_db": 0,
+   "tone_amplitude": 0.6789079323725367,
+   "peak_bound": 0.6789079323725367,
+   "rms": 0.48006040278195866
+  },
+  {
+   "waveform": "CW ID",
+   "drive_db": 0,
+   "amp_1500": 0.5298097943721458,
+   "peak": 0.7244039024054799
+  },
+  {
+   "waveform": "TUNE (1500 Hz ALC test tone)",
+   "drive_db": 0,
+   "tone_amplitude": 0.6768851679225617
+  },
+  {
+   "waveform": "ATU tone (current ctrl format fmt1; the connect reply is fmt1)",
+   "drive_db": 0,
+   "tone_amplitude": 0.3384425839612808,
+   "peak_i16": 11090
+  },
+  {
+   "waveform": "ATU tone (current ctrl format fmt2; the connect reply is fmt1)",
+   "drive_db": 0,
+   "tone_amplitude": 0.18153902738505065,
+   "peak_i16": 5948
+  },
+  {
+   "waveform": "PSK data 500 L4",
+   "drive_db": 0,
+   "ampNorm": 0.61,
+   "gain": 0.4207266283844441,
+   "rms_expected": 0.4207266283844441
+  },
+  {
+   "waveform": "PSK data 500 L5",
+   "drive_db": 0,
+   "ampNorm": 0.61,
+   "gain": 0.4207266283844441,
+   "rms_expected": 0.4207266283844441
+  },
+  {
+   "waveform": "PSK data 500 L6",
+   "drive_db": 0,
+   "ampNorm": 1.22,
+   "gain": 0.3250872973854344,
+   "rms_expected": 0.3250872973854344
+  },
+  {
+   "waveform": "OFDM data 500 L7",
+   "drive_db": 0,
+   "ampNorm": 4.9678,
+   "gain": 0.2937649651961531,
+   "rms_expected": 0.27702036217997233
+  },
+  {
+   "waveform": "OFDM data 500 L8",
+   "drive_db": 0,
+   "ampNorm": 4.9678,
+   "gain": 0.2937649651961531,
+   "rms_expected": 0.27702036217997233
+  },
+  {
+   "waveform": "OFDM data 500 L9",
+   "drive_db": 0,
+   "ampNorm": 4.9678,
+   "gain": 0.2937649651961531,
+   "rms_expected": 0.27702036217997233
+  },
+  {
+   "waveform": "OFDM data 500 L10",
+   "drive_db": 0,
+   "ampNorm": 4.9678,
+   "gain": 0.2964831389524343,
+   "rms_expected": 0.2795836000321455
+  },
+  {
+   "waveform": "OFDM data 500 L11",
+   "drive_db": 0,
+   "ampNorm": 4.9678,
+   "gain": 0.2964831389524343,
+   "rms_expected": 0.2795836000321455
+  },
+  {
+   "waveform": "OFDM data 500 L12",
+   "drive_db": 0,
+   "ampNorm": 4.21,
+   "gain": 0.2964831389524343,
+   "rms_expected": 0.2795836000321455
+  },
+  {
+   "waveform": "OFDM data 500 L13",
+   "drive_db": 0,
+   "ampNorm": 4.67,
+   "gain": 0.2964831389524343,
+   "rms_expected": 0.2795836000321455
+  },
+  {
+   "waveform": "PSK data 2300 L5",
+   "drive_db": 0,
+   "ampNorm": 0.75,
+   "gain": 0.35974933515574237,
+   "rms_expected": 0.35974933515574237
+  },
+  {
+   "waveform": "PSK data 2300 L6",
+   "drive_db": 0,
+   "ampNorm": 0.86,
+   "gain": 0.328095293113119,
+   "rms_expected": 0.328095293113119
+  },
+  {
+   "waveform": "PSK data 2300 L7",
+   "drive_db": 0,
+   "ampNorm": 1.73,
+   "gain": 0.28840315031266056,
+   "rms_expected": 0.28840315031266056
+  },
+  {
+   "waveform": "PSK data 2300 L8",
+   "drive_db": 0,
+   "ampNorm": 2.0,
+   "gain": 0.2857590543374947,
+   "rms_expected": 0.2857590543374947
+  },
+  {
+   "waveform": "PSK data 2300 L9",
+   "drive_db": 0,
+   "ampNorm": 2.23,
+   "gain": 0.27797132677592884,
+   "rms_expected": 0.27797132677592884
+  },
+  {
+   "waveform": "OFDM data 2300 L10",
+   "drive_db": 0,
+   "ampNorm": 10.44435,
+   "gain": 0.265460556197554,
+   "rms_expected": 0.2503293044942934
+  },
+  {
+   "waveform": "OFDM data 2300 L11",
+   "drive_db": 0,
+   "ampNorm": 10.44435,
+   "gain": 0.265460556197554,
+   "rms_expected": 0.2503293044942934
+  },
+  {
+   "waveform": "OFDM data 2300 L12",
+   "drive_db": 0,
+   "ampNorm": 10.44435,
+   "gain": 0.265460556197554,
+   "rms_expected": 0.2503293044942934
+  },
+  {
+   "waveform": "OFDM data 2300 L13",
+   "drive_db": 0,
+   "ampNorm": 10.44435,
+   "gain": 0.265460556197554,
+   "rms_expected": 0.2503293044942934
+  },
+  {
+   "waveform": "OFDM data 2300 L14",
+   "drive_db": 0,
+   "ampNorm": 10.44435,
+   "gain": 0.265460556197554,
+   "rms_expected": 0.2503293044942934
+  },
+  {
+   "waveform": "OFDM data 2300 L15",
+   "drive_db": 0,
+   "ampNorm": 8.82035,
+   "gain": 0.2679168324819031,
+   "rms_expected": 0.2526455730304346
+  },
+  {
+   "waveform": "OFDM data 2300 L16",
+   "drive_db": 0,
+   "ampNorm": 10.01805,
+   "gain": 0.2679168324819031,
+   "rms_expected": 0.2526455730304346
+  },
+  {
+   "waveform": "PSK data 2750 L5",
+   "drive_db": 0,
+   "ampNorm": 0.75,
+   "gain": 0.35974933515574237,
+   "rms_expected": 0.35974933515574237
+  },
+  {
+   "waveform": "PSK data 2750 L6",
+   "drive_db": 0,
+   "ampNorm": 0.86,
+   "gain": 0.328095293113119,
+   "rms_expected": 0.328095293113119
+  },
+  {
+   "waveform": "PSK data 2750 L7",
+   "drive_db": 0,
+   "ampNorm": 1.73,
+   "gain": 0.2910717118066605,
+   "rms_expected": 0.2910717118066605
+  },
+  {
+   "waveform": "PSK data 2750 L8",
+   "drive_db": 0,
+   "ampNorm": 2.0,
+   "gain": 0.28313919957993794,
+   "rms_expected": 0.28313919957993794
+  },
+  {
+   "waveform": "PSK data 2750 L9",
+   "drive_db": 0,
+   "ampNorm": 2.23,
+   "gain": 0.2805433637951713,
+   "rms_expected": 0.2805433637951713
+  },
+  {
+   "waveform": "PSK data 2750 L10",
+   "drive_db": 0,
+   "ampNorm": 2.5422,
+   "gain": 0.2805433637951713,
+   "rms_expected": 0.2805433637951713
+  },
+  {
+   "waveform": "OFDM data 2750 L11",
+   "drive_db": 0,
+   "ampNorm": 11.4219,
+   "gain": 0.2679168324819031,
+   "rms_expected": 0.2526455730304346
+  },
+  {
+   "waveform": "OFDM data 2750 L12",
+   "drive_db": 0,
+   "ampNorm": 11.4219,
+   "gain": 0.2679168324819031,
+   "rms_expected": 0.2526455730304346
+  },
+  {
+   "waveform": "OFDM data 2750 L13",
+   "drive_db": 0,
+   "ampNorm": 11.4219,
+   "gain": 0.265460556197554,
+   "rms_expected": 0.2503293044942934
+  },
+  {
+   "waveform": "OFDM data 2750 L14",
+   "drive_db": 0,
+   "ampNorm": 11.4219,
+   "gain": 0.2630267991895382,
+   "rms_expected": 0.2480342716357345
+  },
+  {
+   "waveform": "OFDM data 2750 L15",
+   "drive_db": 0,
+   "ampNorm": 11.4219,
+   "gain": 0.2630267991895382,
+   "rms_expected": 0.2480342716357345
+  },
+  {
+   "waveform": "OFDM data 2750 L16",
+   "drive_db": 0,
+   "ampNorm": 9.6459,
+   "gain": 0.2679168324819031,
+   "rms_expected": 0.2526455730304346
+  },
+  {
+   "waveform": "OFDM data 2750 L17",
+   "drive_db": 0,
+   "ampNorm": 10.9557,
+   "gain": 0.2679168324819031,
+   "rms_expected": 0.2526455730304346
+  }
+ ]
+}

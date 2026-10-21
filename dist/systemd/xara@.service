@@ -1,0 +1,55 @@
+[Unit]
+Description=xara VARA-compatible modem (%i)
+Documentation=man:xara(1)
+After=network.target sound.target modprobe@cdc_acm.service modprobe@usbserial.service modprobe@hid.service
+Wants=modprobe@cdc_acm.service modprobe@usbserial.service modprobe@hid.service
+StartLimitIntervalSec=10min
+StartLimitBurst=5
+
+[Service]
+Type=exec
+StateDirectory=xara/%i
+ExecStart=/usr/bin/xara --config /etc/xara/%i.conf
+User=xara
+Group=xara
+SupplementaryGroups=audio dialout plugdev
+Restart=on-failure
+RestartSec=10s
+SuccessExitStatus=130
+RestartPreventExitStatus=2
+TimeoutStopSec=10s
+Nice=-5
+
+DevicePolicy=closed
+DeviceAllow=char-alsa rw
+DeviceAllow=char-ttyACM rw
+DeviceAllow=char-ttyUSB rw
+DeviceAllow=char-ttyS rw
+DeviceAllow=char-hidraw rw
+
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+SystemCallErrorNumber=EPERM
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,140 @@
+{
+ "sequences": {
+  "caller_session_chatoff": {
+   "events": [
+    {
+     "event": "host CONNECT",
+     "lines": ["OK", "PTT ON", "BUSY ON"]
+    },
+    {
+     "event": "request TX ends",
+     "lines": ["PTT OFF"]
+    },
+    {
+     "event": "connect reply received; header built",
+     "lines": ["UNENCRYPTED LINK", "BITRATE (4)  175 bps TX", "PTT ON"]
+    },
+    {
+     "event": "5 s after MYCALL (independent)",
+     "lines": ["REGISTERED", "ENCRYPTION DISABLED"]
+    },
+    {
+     "event": "header TX ends",
+     "lines": ["PTT OFF"]
+    },
+    {
+     "event": "49/50 from answerer",
+     "lines": ["CONNECTED N0CALL N1CALL 2300", "PTT ON"]
+    },
+    {
+     "event": "data frame (single) built",
+     "lines": ["BITRATE (4)  175 bps TX", "PTT ON"]
+    },
+    {
+     "event": "ACK received for single frame",
+     "lines": ["BUFFER {n}", "BITRATE (l)  b bps TX", "PTT ON"]
+    },
+    {
+     "event": "ACK received for two-frame TX",
+     "lines": ["BUFFER {n1}", "BUFFER {n2}", "BITRATE (l)  b bps TX", "PTT ON", "BITRATE (l)  b bps TX"]
+    },
+    {
+     "event": "final frame answered with 49",
+     "lines": ["BUFFER 0", "PTT ON"]
+    },
+    {
+     "event": "host DISCONNECT from idle",
+     "lines": ["OK", "PTT ON", "PTT OFF"]
+    },
+    {
+     "event": "peer 14 received -> 3 + CW ID",
+     "lines": ["PTT ON"]
+    },
+    {
+     "event": "CW ID ends",
+     "lines": ["PTT OFF", "DISCONNECTED"]
+    }
+   ]
+  },
+  "answerer_session_chatoff": {
+   "events": [
+    {
+     "event": "connect request received",
+     "lines": ["PENDING", "PTT ON"]
+    },
+    {
+     "event": "reply TX ends",
+     "lines": ["PTT OFF"]
+    },
+    {
+     "event": "5 s after MYCALL (independent)",
+     "lines": ["REGISTERED", "ENCRYPTION DISABLED"]
+    },
+    {
+     "event": "session header decoded",
+     "lines": ["SN {x}", "UNENCRYPTED LINK", "CONNECTED N0CALL N1CALL 2300", "LINK UNREGISTERED", "PTT ON"]
+    },
+    {
+     "event": "single data frame decoded",
+     "lines": ["SN {x}", "BITRATE (l)  b bps RX", "PTT ON"]
+    },
+    {
+     "event": "two-frame: frame 1 decoded",
+     "lines": ["BITRATE (l)  b bps RX"]
+    },
+    {
+     "event": "two-frame: frame 2 decoded",
+     "lines": ["SN {x}", "BITRATE (l)  b bps RX", "PTT ON"]
+    },
+    {
+     "event": "QRT received",
+     "lines": []
+    },
+    {
+     "event": "own CW ID (keyed ~0.1 s after QRT end, blanks first)",
+     "lines": ["PTT ON"]
+    },
+    {
+     "event": "CW ID ends",
+     "lines": ["PTT OFF", "DISCONNECTED"]
+    }
+   ]
+  },
+  "failed_call": {
+   "events": [
+    {
+     "event": "CONNECT",
+     "lines": ["OK", "PTT ON", "BUSY ON"]
+    },
+    {
+     "event": "each attempt",
+     "lines": ["PTT OFF", "PTT ON"]
+    },
+    {
+     "event": "last window expires: CW ID",
+     "lines": ["PTT ON"]
+    },
+    {
+     "event": "CW ID ends",
+     "lines": ["PTT OFF", "DISCONNECTED"]
+    }
+   ]
+  },
+  "failed_incoming": {
+   "events": [
+    {
+     "event": "request",
+     "lines": ["PENDING", "PTT ON"]
+    },
+    {
+     "event": "reply ends",
+     "lines": ["PTT OFF"]
+    },
+    {
+     "event": "30 s watchdog (no header)",
+     "lines": ["CANCELPENDING"]
+    }
+   ]
+  }
+ }
+}

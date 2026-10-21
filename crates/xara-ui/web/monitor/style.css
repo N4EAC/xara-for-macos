@@ -1,0 +1,42 @@
+.state { font-size: 24px; font-family: var(--mono); }
+.state.idle { font-family: inherit; }
+.led.behind.on { background: var(--warn); color: #1c2026; }
+.led.ended.on { background: var(--accent); color: #fff; }
+#wf { height: 360px; }
+@media (max-width: 760px) { #wf { height: 240px; } }
+
+.legend { font-size: 12px; color: var(--dim); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.legend i { display: inline-block; width: 14px; height: 3px; margin-left: 6px; }
+:root { --k-caller: #63b3ed; --k-answerer: #f6ad55; --k-ok: #48bb78; --k-bad: #f56565; --k-unproto: #b794f4; }
+.k-caller { background: var(--k-caller); }
+.k-answerer { background: var(--k-answerer); }
+.k-ok { background: var(--k-ok); }
+.k-bad { background: var(--k-bad); }
+.k-unproto { background: var(--k-unproto); }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; font-weight: 600; color: var(--dim); font-size: 12px; padding: 0 6px 4px 0; border-bottom: 1px solid var(--line); }
+td { padding: 3px 6px 3px 0; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+td.mono { font-family: var(--mono); }
+.n { text-align: right; }
+.heard, .keys { max-height: 360px; overflow-y: auto; }
+
+.chips { display: flex; gap: 10px; flex-wrap: wrap; font-size: 13px; color: var(--dim); }
+.chips label { display: flex; gap: 4px; align-items: center; }
+#log .ctrl.caller { color: var(--accent); }
+#log .ctrl.answerer { color: var(--warn); }
+#log .data { color: var(--good); }
+#log .data.bad, #log .payload.bad { color: var(--bad); }
+#log .payload { color: var(--text); }
+#log .unproto, #log .kiss, #log .cq { color: var(--k-unproto); }
+#log .learned, #log .dropped, #log .link_end, #log .header { font-weight: 600; }
+#log .summary { font-weight: 700; }
+
+.payloads { grid-column: 1 / -1; }
+.pl-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.pl-grid h3 { margin: 0 0 6px; font-size: 13px; font-weight: 600; }
+.pl-grid pre {
+  margin: 0; height: 220px; overflow: auto; padding: 8px; border-radius: 6px;
+  background: var(--bg); font-family: var(--mono); font-size: 12px; white-space: pre-wrap; word-break: break-all;
+}
+@media (max-width: 760px) { .pl-grid { grid-template-columns: minmax(0, 1fr); } }

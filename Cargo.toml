@@ -1,0 +1,27 @@
+[workspace]
+resolver = "3"
+members = ["crates/xara-phy", "crates/xara-arq", "crates/xara-host", "crates/xara-ui", "crates/xara", "crates/xara-testkit"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+publish = false
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/x0rro/xara"
+
+[workspace.dependencies]
+xara-phy = { path = "crates/xara-phy" }
+xara-arq = { path = "crates/xara-arq" }
+xara-host = { path = "crates/xara-host" }
+xara-ui = { path = "crates/xara-ui" }
+xara-testkit = { path = "crates/xara-testkit" }
+num-complex = "0.4"
+rustfft = "6.4"
+miniz_oxide = "0.8"
+libc = "0.2"
+alsa-sys = "0.3.1"
+
+[profile.test]
+opt-level = 2

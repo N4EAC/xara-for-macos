@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>xara monitor</title>
+<link rel="stylesheet" href="common.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="brand">xara monitor <span id="mode" class="dim"></span></div>
+  <div id="calls" class="calls"></div>
+  <div id="conn" class="conn">connecting</div>
+</header>
+<main>
+  <section class="card now">
+    <div class="state-row">
+      <span id="state" class="state idle">Quiet</span>
+      <span id="since" class="dim"></span>
+    </div>
+    <div class="tiles">
+      <div class="tile"><label>Caller → answerer</label><b id="bytes-ca">-</b><small>bytes</small></div>
+      <div class="tile"><label>Answerer → caller</label><b id="bytes-ac">-</b><small>bytes</small></div>
+      <div class="tile"><label>Behind</label><b id="lag">-</b><small>s</small></div>
+      <div class="tile"><label>Data frames</label><b id="frames">-</b></div>
+      <div class="tile"><label>Control frames</label><b id="ctrl">-</b></div>
+      <div class="tile"><label>Key searches</label><b id="searches">-</b></div>
+    </div>
+  </section>
+  <section class="card audio">
+    <div class="leds">
+      <span id="clip" class="led clip">CLIP</span>
+      <span id="behind" class="led behind">BEHIND</span>
+      <span id="ended" class="led ended">INPUT ENDED</span>
+    </div>
+    <div class="meter" id="rx">
+      <label>RX</label>
+      <div class="bar"><div class="fill"></div><div class="hold"></div></div>
+      <span class="val">-</span>
+    </div>
+    <div class="scale"></div>
+  </section>
+  <section class="card wf">
+    <div class="card-head">
+      <h2>Waterfall</h2>
+      <span id="wf-cursor" class="cursor"></span>
+      <span class="legend">
+        <i class="k-caller"></i>caller <i class="k-answerer"></i>answerer <i class="k-ok"></i>data
+        <i class="k-bad"></i>failed <i class="k-unproto"></i>broadcast
+      </span>
+      <label class="toggle"><input type="checkbox" id="wf-on" checked> show</label>
+    </div>
+    <div class="wf-wrap" id="wf-wrap">
+      <canvas id="wf" width="512" height="360"></canvas>
+      <div id="wf-band" class="band"></div>
+    </div>
+    <canvas id="wf-axis" height="22"></canvas>
+  </section>
+  <section class="card heard">
+    <h2>Heard</h2>
+    <table>
+      <thead><tr><th>Station</th><th>As</th><th>Last</th><th class="n">Frames</th></tr></thead>
+      <tbody id="heard"></tbody>
+    </table>
+    <p id="heard-none" class="hint">Nobody yet.</p>
+  </section>
+  <section class="card keys">
+    <h2>Keys</h2>
+    <table>
+      <thead><tr><th>Key</th><th>Kind</th><th>From</th><th>Last</th><th class="n">Expires</th></tr></thead>
+      <tbody id="keys"></tbody>
+    </table>
+    <p id="keys-none" class="hint">No keys yet: they are learned from what is heard.</p>
+  </section>
+  <section class="card log">
+    <div class="log-head">
+      <h2>Activity</h2>
+      <div class="chips" id="chips">
+        <label><input type="checkbox" value="ctrl" checked> control</label>
+        <label><input type="checkbox" value="data" checked> data</label>
+        <label><input type="checkbox" value="payload" checked> payloads</label>
+        <label><input type="checkbox" value="unproto" checked> broadcast</label>
+        <label><input type="checkbox" value="notes" checked> keys &amp; links</label>
+        <label><input type="checkbox" id="collapse" checked> collapse repeats</label>
+      </div>
+    </div>
+    <ol id="log"></ol>
+  </section>
+  <section class="card payloads">
+    <div class="card-head">
+      <h2>Payloads</h2>
+      <span id="pl-link" class="cursor"></span>
+      <label class="toggle"><input type="checkbox" id="pl-hex"> hex</label>
+    </div>
+    <div class="pl-grid">
+      <div><h3>Caller → answerer <span id="pl-n0" class="dim"></span></h3><pre id="pl0"></pre></div>
+      <div><h3>Answerer → caller <span id="pl-n1" class="dim"></span></h3><pre id="pl1"></pre></div>
+    </div>
+  </section>
+</main>
+<script src="common.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

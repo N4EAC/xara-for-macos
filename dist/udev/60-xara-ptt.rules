@@ -1,0 +1,19 @@
+# hidraw access for xara --ptt cm108 (CM108/CM119-family HID GPIO and the AIOC).
+# Serial PTT (rts:/dtr:) needs only the dialout group.
+
+ACTION=="remove", GOTO="xara_ptt_end"
+SUBSYSTEM!="hidraw", GOTO="xara_ptt_end"
+
+# C-Media CM108, CM109, CM119 (0008-000f), CM108B, CM119B, CM108AH, CM119A
+ATTRS{idVendor}=="0d8c", ATTRS{idProduct}=="000[89a-f]", GOTO="xara_ptt"
+ATTRS{idVendor}=="0d8c", ATTRS{idProduct}=="0012|0013|0139|013a|013c", GOTO="xara_ptt"
+# SSS1621/SSS1623 (same GPIO report)
+ATTRS{idVendor}=="0c76", ATTRS{idProduct}=="1605|1607|160b", GOTO="xara_ptt"
+# AIOC (All-In-One-Cable)
+ATTRS{idVendor}=="1209", ATTRS{idProduct}=="7388", GOTO="xara_ptt"
+GOTO="xara_ptt_end"
+
+LABEL="xara_ptt"
+MODE="0660", GROUP="plugdev", TAG+="uaccess"
+
+LABEL="xara_ptt_end"

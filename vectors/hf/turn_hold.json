@@ -1,0 +1,284 @@
+{
+ "hint_table_minimum": {
+  "500": {
+   "plain": [6, 6, 6, 5, 3, 0, 0, 0, 0, 0, 0, 0, 0],
+   "text": [6, 6, 5, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  },
+  "2300": {
+   "plain": [6, 6, 4, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+   "text": [6, 5, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  },
+  "2750": {
+   "plain": [6, 6, 4, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+   "text": [6, 5, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  }
+ },
+ "cases": [
+  {
+   "bw": 2300,
+   "now_ms_since_header": 2000,
+   "state": {
+    "is_answerer": true,
+    "hold": true,
+    "chat": false,
+    "Q": 0,
+    "t_header_ms": 0,
+    "kind": 0,
+    "offered": 4,
+    "next_tx": 4,
+    "text_comp": false,
+    "last_held": 0
+   },
+   "action": "49",
+   "hint_override": null,
+   "last_held_after": 0
+  },
+  {
+   "bw": 2300,
+   "now_ms_since_header": 3300,
+   "state": {
+    "is_answerer": true,
+    "hold": true,
+    "chat": false,
+    "Q": 0,
+    "t_header_ms": 0,
+    "kind": 0,
+    "offered": 4,
+    "next_tx": 4,
+    "text_comp": false,
+    "last_held": 0
+   },
+   "action": "50",
+   "hint_override": null,
+   "last_held_after": 0
+  },
+  {
+   "bw": 2300,
+   "now_ms_since_header": 3400,
+   "state": {
+    "is_answerer": true,
+    "hold": true,
+    "chat": false,
+    "Q": 40,
+    "t_header_ms": 0,
+    "kind": 0,
+    "offered": 4,
+    "next_tx": 4,
+    "text_comp": false,
+    "last_held": 0
+   },
+   "action": "49",
+   "hint_override": null,
+   "last_held_after": 0
+  },
+  {
+   "bw": 2300,
+   "now_ms_since_header": 4600,
+   "state": {
+    "is_answerer": true,
+    "hold": true,
+    "chat": false,
+    "Q": 40,
+    "t_header_ms": 0,
+    "kind": 0,
+    "offered": 4,
+    "next_tx": 4,
+    "text_comp": false,
+    "last_held": 0
+   },
+   "action": "data",
+   "hint_override": 2,
+   "last_held_after": 0
+  },
+  {
+   "bw": 2300,
+   "now_ms_since_header": 1400,
+   "state": {
+    "is_answerer": true,
+    "hold": true,
+    "chat": false,
+    "Q": 30,
+    "t_header_ms": 0,
+    "kind": 1,
+    "offered": 4,
+    "next_tx": 4,
+    "text_comp": false,
+    "last_held": 0
+   },
+   "action": "data",
+   "hint_override": 0,
+   "last_held_after": 0
+  },
+  {
+   "bw": 2300,
+   "now_ms_since_header": 1400,
+   "state": {
+    "is_answerer": true,
+    "hold": true,
+    "chat": false,
+    "Q": 5000,
+    "t_header_ms": 0,
+    "kind": 2,
+    "offered": 4,
+    "next_tx": 4,
+    "text_comp": false,
+    "last_held": 0
+   },
+   "action": "data",
+   "hint_override": 2,
+   "last_held_after": 0
+  },
+  {
+   "bw": 2300,
+   "now_ms_since_header": 1400,
+   "state": {
+    "is_answerer": true,
+    "hold": true,
+    "chat": true,
+    "Q": 40,
+    "t_header_ms": 0,
+    "kind": 0,
+    "offered": 4,
+    "next_tx": 4,
+    "text_comp": false,
+    "last_held": 0
+   },
+   "action": "data",
+   "hint_override": 0,
+   "last_held_after": 0
+  },
+  {
+   "bw": 2300,
+   "now_ms_since_header": 0,
+   "state": {
+    "is_answerer": false,
+    "hold": false,
+    "chat": false,
+    "Q": 0,
+    "t_header_ms": 0,
+    "kind": 0,
+    "offered": 4,
+    "next_tx": 4,
+    "text_comp": false,
+    "last_held": 0
+   },
+   "action": "50",
+   "hint_override": null,
+   "last_held_after": 0
+  },
+  {
+   "bw": 2300,
+   "now_ms_since_header": 0,
+   "state": {
+    "is_answerer": false,
+    "hold": false,
+    "chat": false,
+    "Q": 40,
+    "t_header_ms": 0,
+    "kind": 0,
+    "offered": 4,
+    "next_tx": 4,
+    "text_comp": false,
+    "last_held": 0
+   },
+   "action": "data",
+   "hint_override": 0,
+   "last_held_after": 0
+  },
+  {
+   "bw": 2300,
+   "now_ms_since_header": 0,
+   "state": {
+    "is_answerer": false,
+    "hold": false,
+    "chat": false,
+    "Q": 200,
+    "t_header_ms": 0,
+    "kind": 0,
+    "offered": 10,
+    "next_tx": 10,
+    "text_comp": false,
+    "last_held": 0
+   },
+   "action": "49",
+   "hint_override": null,
+   "last_held_after": 200
+  },
+  {
+   "bw": 2300,
+   "now_ms_since_header": 0,
+   "state": {
+    "is_answerer": false,
+    "hold": false,
+    "chat": false,
+    "Q": 200,
+    "t_header_ms": 0,
+    "kind": 0,
+    "offered": 10,
+    "next_tx": 10,
+    "text_comp": false,
+    "last_held": 200
+   },
+   "action": "data",
+   "hint_override": 1,
+   "last_held_after": 200
+  },
+  {
+   "bw": 2300,
+   "now_ms_since_header": 0,
+   "state": {
+    "is_answerer": false,
+    "hold": false,
+    "chat": false,
+    "Q": 5000,
+    "t_header_ms": 0,
+    "kind": 0,
+    "offered": 10,
+    "next_tx": 10,
+    "text_comp": false,
+    "last_held": 0
+   },
+   "action": "data",
+   "hint_override": 1,
+   "last_held_after": 0
+  },
+  {
+   "bw": 2300,
+   "now_ms_since_header": 0,
+   "state": {
+    "is_answerer": false,
+    "hold": false,
+    "chat": false,
+    "Q": 100,
+    "t_header_ms": 0,
+    "kind": 0,
+    "offered": 6,
+    "next_tx": 6,
+    "text_comp": true,
+    "last_held": 0
+   },
+   "action": "49",
+   "hint_override": null,
+   "last_held_after": 100
+  },
+  {
+   "bw": 2300,
+   "now_ms_since_header": 0,
+   "state": {
+    "is_answerer": false,
+    "hold": false,
+    "chat": false,
+    "Q": 100,
+    "t_header_ms": 0,
+    "kind": 0,
+    "offered": 6,
+    "next_tx": 6,
+    "text_comp": true,
+    "last_held": 100
+   },
+   "action": "data",
+   "hint_override": 1,
+   "last_held_after": 100
+  }
+ ]
+}

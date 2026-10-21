@@ -1,0 +1,29 @@
+[package]
+name = "xara"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+readme = "README.md"
+repository.workspace = true
+description = "A VARA-compatible HF/FM modem for Linux with PipeWire/PulseAudio audio I/O and a passive monitor."
+
+[dependencies]
+xara-phy.workspace = true
+xara-arq.workspace = true
+xara-host.workspace = true
+xara-ui.workspace = true
+libc.workspace = true
+alsa-sys = { workspace = true, optional = true }
+
+[dev-dependencies]
+xara-testkit.workspace = true
+
+[features]
+default = ["pulse", "alsa"]
+pulse = []
+alsa = ["dep:alsa-sys"]
+registered = []
+fixed-turbo = ["xara-phy/fixed-turbo"]
+float-turbo = ["xara-phy/float-turbo"]

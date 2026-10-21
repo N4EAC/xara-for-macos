@@ -1,0 +1,396 @@
+{
+ "sequences": [
+  {
+   "name": "snr_hysteresis",
+   "steps": [
+    {
+     "raw_snr": 10.0,
+     "rx_fmt": 2,
+     "hits": 14,
+     "snr_held": 6.599999904632568,
+     "reply_fmt": 2
+    },
+    {
+     "raw_snr": -1.0,
+     "rx_fmt": 1,
+     "hits": 15,
+     "snr_held": -7.400000095367432,
+     "reply_fmt": 1
+    },
+    {
+     "raw_snr": -1.0,
+     "rx_fmt": 2,
+     "hits": 14,
+     "snr_held": -7.400000095367432,
+     "reply_fmt": 1
+    },
+    {
+     "raw_snr": -1.0,
+     "rx_fmt": 2,
+     "hits": 14,
+     "snr_held": -4.400000095367432,
+     "reply_fmt": 2
+    },
+    {
+     "raw_snr": -2.0,
+     "rx_fmt": 2,
+     "hits": 14,
+     "snr_held": -5.400000095367432,
+     "reply_fmt": 2
+    },
+    {
+     "raw_snr": -3.4,
+     "rx_fmt": 2,
+     "hits": 14,
+     "snr_held": -6.800000190734863,
+     "reply_fmt": 2
+    },
+    {
+     "raw_snr": -3.6,
+     "rx_fmt": 2,
+     "hits": 14,
+     "snr_held": -7.0,
+     "reply_fmt": 1
+    },
+    {
+     "raw_snr": -3.6,
+     "rx_fmt": 2,
+     "hits": 14,
+     "snr_held": -7.0,
+     "reply_fmt": 1
+    }
+   ]
+  },
+  {
+   "name": "missed_symbols",
+   "steps": [
+    {
+     "raw_snr": 5.0,
+     "rx_fmt": 2,
+     "hits": 14,
+     "snr_held": 1.600000023841858,
+     "reply_fmt": 2
+    },
+    {
+     "raw_snr": 5.0,
+     "rx_fmt": 2,
+     "hits": 13,
+     "snr_held": 1.600000023841858,
+     "reply_fmt": 1
+    },
+    {
+     "raw_snr": 5.0,
+     "rx_fmt": 2,
+     "hits": 13,
+     "snr_held": 1.600000023841858,
+     "reply_fmt": 1
+    },
+    {
+     "raw_snr": 5.0,
+     "rx_fmt": 2,
+     "hits": 12,
+     "snr_held": 1.600000023841858,
+     "reply_fmt": 1
+    },
+    {
+     "raw_snr": 5.0,
+     "rx_fmt": 2,
+     "hits": 14,
+     "snr_held": 1.600000023841858,
+     "reply_fmt": 1
+    },
+    {
+     "raw_snr": 5.0,
+     "rx_fmt": 2,
+     "hits": 14,
+     "snr_held": 1.600000023841858,
+     "reply_fmt": 2
+    },
+    {
+     "raw_snr": 5.0,
+     "rx_fmt": 1,
+     "hits": 13,
+     "snr_held": -1.399999976158142,
+     "reply_fmt": 0
+    },
+    {
+     "raw_snr": 5.0,
+     "rx_fmt": 1,
+     "hits": 14,
+     "snr_held": -1.399999976158142,
+     "reply_fmt": 0
+    },
+    {
+     "raw_snr": 5.0,
+     "rx_fmt": 1,
+     "hits": 15,
+     "snr_held": -1.399999976158142,
+     "reply_fmt": 1
+    },
+    {
+     "raw_snr": 5.0,
+     "rx_fmt": 1,
+     "hits": 15,
+     "snr_held": -1.399999976158142,
+     "reply_fmt": 2
+    },
+    {
+     "raw_snr": 5.0,
+     "rx_fmt": 0,
+     "hits": 30,
+     "snr_held": -1.399999976158142,
+     "reply_fmt": 1
+    },
+    {
+     "raw_snr": 5.0,
+     "rx_fmt": 0,
+     "hits": 31,
+     "snr_held": -1.399999976158142,
+     "reply_fmt": 1
+    },
+    {
+     "raw_snr": 5.0,
+     "rx_fmt": 2,
+     "hits": 14,
+     "snr_held": -1.399999976158142,
+     "reply_fmt": 2
+    }
+   ]
+  },
+  {
+   "name": "blank_symbol",
+   "steps": [
+    {
+     "raw_snr": 10.0,
+     "rx_fmt": 2,
+     "hits": 14,
+     "snr_held": 6.599999904632568,
+     "reply_fmt": 2
+    },
+    {
+     "raw_snr": 10.0,
+     "rx_fmt": 2,
+     "hits": 13,
+     "snr_held": 6.599999904632568,
+     "reply_fmt": 1
+    },
+    {
+     "raw_snr": 10.0,
+     "rx_fmt": 1,
+     "hits": 15,
+     "snr_held": 3.5999999046325684,
+     "reply_fmt": 1
+    },
+    {
+     "raw_snr": 10.0,
+     "rx_fmt": 1,
+     "hits": 15,
+     "snr_held": 3.5999999046325684,
+     "reply_fmt": 2
+    }
+   ]
+  },
+  {
+   "name": "hits_12",
+   "steps": [
+    {
+     "raw_snr": 10.0,
+     "rx_fmt": 2,
+     "hits": 14,
+     "snr_held": 6.599999904632568,
+     "reply_fmt": 2
+    },
+    {
+     "raw_snr": 10.0,
+     "rx_fmt": 2,
+     "hits": 12,
+     "snr_held": 6.599999904632568,
+     "reply_fmt": 1
+    },
+    {
+     "raw_snr": 10.0,
+     "rx_fmt": 1,
+     "hits": 15,
+     "snr_held": 3.5999999046325684,
+     "reply_fmt": 0
+    },
+    {
+     "raw_snr": 10.0,
+     "rx_fmt": 1,
+     "hits": 15,
+     "snr_held": 3.5999999046325684,
+     "reply_fmt": 2
+    }
+   ]
+  },
+  {
+   "name": "one_tone_blanked",
+   "steps": [
+    {
+     "raw_snr": 10.0,
+     "rx_fmt": 2,
+     "hits": 14,
+     "snr_held": 6.599999904632568,
+     "reply_fmt": 2
+    },
+    {
+     "raw_snr": 10.0,
+     "rx_fmt": 2,
+     "hits": 13,
+     "snr_held": 6.599999904632568,
+     "reply_fmt": 1
+    },
+    {
+     "raw_snr": 10.0,
+     "rx_fmt": 1,
+     "hits": 15,
+     "snr_held": 3.5999999046325684,
+     "reply_fmt": 1
+    },
+    {
+     "raw_snr": 10.0,
+     "rx_fmt": 1,
+     "hits": 15,
+     "snr_held": 3.5999999046325684,
+     "reply_fmt": 2
+    }
+   ]
+  },
+  {
+   "name": "two_tones_in_two_symbols",
+   "steps": [
+    {
+     "raw_snr": 10.0,
+     "rx_fmt": 2,
+     "hits": 14,
+     "snr_held": 6.599999904632568,
+     "reply_fmt": 2
+    },
+    {
+     "raw_snr": 10.0,
+     "rx_fmt": 2,
+     "hits": 12,
+     "snr_held": 6.599999904632568,
+     "reply_fmt": 1
+    },
+    {
+     "raw_snr": 10.0,
+     "rx_fmt": 1,
+     "hits": 15,
+     "snr_held": 3.5999999046325684,
+     "reply_fmt": 0
+    },
+    {
+     "raw_snr": 10.0,
+     "rx_fmt": 1,
+     "hits": 15,
+     "snr_held": 3.5999999046325684,
+     "reply_fmt": 2
+    }
+   ]
+  },
+  {
+   "name": "low_snr",
+   "steps": [
+    {
+     "raw_snr": -7.0,
+     "rx_fmt": 1,
+     "hits": 15,
+     "snr_held": -13.399999618530273,
+     "reply_fmt": 1
+    },
+    {
+     "raw_snr": -7.6,
+     "rx_fmt": 1,
+     "hits": 15,
+     "snr_held": -14.0,
+     "reply_fmt": 0
+    },
+    {
+     "raw_snr": -10.0,
+     "rx_fmt": 2,
+     "hits": 14,
+     "snr_held": -14.0,
+     "reply_fmt": 0
+    },
+    {
+     "raw_snr": -10.6,
+     "rx_fmt": 2,
+     "hits": 14,
+     "snr_held": -14.0,
+     "reply_fmt": 0
+    },
+    {
+     "raw_snr": -15.0,
+     "rx_fmt": 0,
+     "hits": 31,
+     "snr_held": -21.399999618530273,
+     "reply_fmt": 0
+    },
+    {
+     "raw_snr": -16.0,
+     "rx_fmt": 0,
+     "hits": 31,
+     "snr_held": -22.399999618530273,
+     "reply_fmt": 0
+    }
+   ]
+  }
+ ],
+ "single": [
+  {
+   "snr_held": -6.900000095367432,
+   "missed_held": 0,
+   "rx_fmt": 2,
+   "reply_fmt": 1
+  },
+  {
+   "snr_held": -6.889999866485596,
+   "missed_held": 0,
+   "rx_fmt": 2,
+   "reply_fmt": 2
+  },
+  {
+   "snr_held": -13.899999618530273,
+   "missed_held": 0,
+   "rx_fmt": 1,
+   "reply_fmt": 0
+  },
+  {
+   "snr_held": -13.890000343322754,
+   "missed_held": 0,
+   "rx_fmt": 1,
+   "reply_fmt": 1
+  },
+  {
+   "snr_held": 0.0,
+   "missed_held": 1,
+   "rx_fmt": 1,
+   "reply_fmt": 1
+  },
+  {
+   "snr_held": 0.0,
+   "missed_held": 2,
+   "rx_fmt": 2,
+   "reply_fmt": 1
+  },
+  {
+   "snr_held": 0.0,
+   "missed_held": 3,
+   "rx_fmt": 2,
+   "reply_fmt": 0
+  },
+  {
+   "snr_held": -21.899999618530273,
+   "missed_held": 0,
+   "rx_fmt": 0,
+   "reply_fmt": 0
+  },
+  {
+   "snr_held": -21.889999389648438,
+   "missed_held": 12,
+   "rx_fmt": 0,
+   "reply_fmt": 0
+  }
+ ]
+}

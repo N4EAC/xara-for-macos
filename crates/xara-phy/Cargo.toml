@@ -1,0 +1,21 @@
+[package]
+name = "xara-phy"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+readme.workspace = true
+repository.workspace = true
+description = "Signal processing for a VARA-compatible HF/FM modem: coding, modulation, receivers and the turbo decoder."
+
+[features]
+fixed-turbo = []
+float-turbo = []
+
+[dependencies]
+num-complex.workspace = true
+rustfft.workspace = true
+
+[dev-dependencies]
+xara-testkit.workspace = true

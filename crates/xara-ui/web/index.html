@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>xara</title>
+<link rel="stylesheet" href="common.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="brand">xara <span id="mode" class="dim"></span></div>
+  <div id="calls" class="calls"></div>
+  <div id="conn" class="conn">connecting</div>
+</header>
+<main>
+  <section class="card link">
+    <div class="state-row">
+      <span id="state" class="state">-</span>
+      <span id="peer" class="peer"></span>
+    </div>
+    <div class="tiles">
+      <div class="tile"><label>Level</label><b id="level">-</b></div>
+      <div class="tile"><label>Bitrate</label><b id="bps">-</b><small id="dir"></small></div>
+      <div class="tile"><label>S/N (dB)</label><b id="sn">-</b></div>
+      <div class="tile"><label>AFC (Hz)</label><b id="afc">-</b></div>
+      <div class="tile"><label>Attempts</label><b id="tries">-</b></div>
+      <div class="tile"><label>buffer (bytes)</label><b id="buffer">-</b></div>
+    </div>
+  </section>
+  <section class="card audio">
+    <div class="leds">
+      <span id="ptt" class="led ptt">PTT</span>
+      <span id="busy" class="led busy">BUSY</span>
+      <span id="clip" class="led clip">CLIP</span>
+    </div>
+    <div class="meter" id="rx">
+      <label>RX</label>
+      <div class="bar"><div class="fill"></div><div class="hold"></div></div>
+      <span class="val">-</span>
+    </div>
+    <div class="meter" id="tx">
+      <label>TX</label>
+      <div class="bar"><div class="fill"></div><div class="hold"></div></div>
+      <span class="val">-</span>
+    </div>
+    <div class="scale"></div>
+    <div id="controls" class="controls" hidden>
+      <div class="drive">
+        <label for="drive">Drive</label>
+        <input type="range" id="drive" max="0" step="1">
+        <span id="drive-val" class="val">-</span>
+      </div>
+      <div class="buttons">
+        <button id="tune" class="btn tune" type="button">Tune</button>
+        <button id="abort" class="btn danger" type="button">Abort</button>
+      </div>
+    </div>
+    <p id="locked" class="hint" hidden>Controls need the link xara prints at startup (/?token=...).</p>
+  </section>
+  <section class="card wf">
+    <div class="card-head">
+      <h2>Waterfall</h2>
+      <span id="wf-cursor" class="cursor"></span>
+      <label class="toggle"><input type="checkbox" id="wf-on" checked> show</label>
+    </div>
+    <div class="wf-wrap" id="wf-wrap">
+      <canvas id="wf" width="512" height="200"></canvas>
+      <div id="wf-band" class="band"></div>
+    </div>
+    <canvas id="wf-axis" height="22"></canvas>
+  </section>
+  <section class="card chart">
+    <h2>S/N history <span class="dim">last 5 min</span></h2>
+    <canvas id="sn-chart" height="160"></canvas>
+  </section>
+  <section class="card log">
+    <div class="log-head">
+      <h2>Log</h2>
+      <select id="verbosity" aria-label="Log detail">
+        <option value="0">Events</option>
+        <option value="1">Host protocol</option>
+        <option value="2">Modem trace</option>
+      </select>
+    </div>
+    <ol id="log"></ol>
+  </section>
+  <section class="card settings" id="settings" hidden>
+    <div class="card-head">
+      <h2>Settings</h2>
+      <span id="set-path" class="cursor"></span>
+    </div>
+    <p id="set-error" class="banner" hidden></p>
+    <form id="set-form" class="set-grid" autocomplete="off">
+      <label>Callsign <input name="call" spellcheck="false"></label>
+      <label id="set-hf">Bandwidth
+        <select name="hf"><option value="">command line</option><option>500</option><option>2300</option><option>2750</option></select>
+      </label>
+      <label id="set-fm" hidden>FM mode
+        <select name="fm"><option value="">command line</option><option>narrow</option><option>wide</option></select>
+      </label>
+      <label>Capture device <input name="capture" list="dev-capture" spellcheck="false"></label>
+      <label>Playback device <input name="playback" list="dev-playback" spellcheck="false"></label>
+      <label>PTT lead (ms) <input name="ptt-lead-ms" type="number" min="0" max="1000" step="10"></label>
+      <label>PTT tail (ms) <input name="ptt-tail-ms" type="number" min="0" max="1000" step="10"></label>
+    </form>
+    <datalist id="dev-capture"></datalist>
+    <datalist id="dev-playback"></datalist>
+    <div class="buttons">
+      <button id="set-save" class="btn" type="button">Save and restart</button>
+      <button id="set-reset" class="btn" type="button">Use command line</button>
+      <button id="set-devices" class="btn" type="button">Refresh devices</button>
+    </div>
+    <p id="set-msg" class="hint"></p>
+    <p class="hint">Empty fields use the command line (shown greyed). xara restarts only while idle, which takes a few
+      seconds; if saved settings fail to start, it falls back to the command line and says so here.</p>
+  </section>
+</main>
+<script src="common.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
