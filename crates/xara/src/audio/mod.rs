@@ -30,8 +30,16 @@ fn remaining(until: Instant, what: &str) -> io::Result<Duration> {
 }
 
 pub trait Audio {
-    fn read(&mut self, x: &mut [f64]) -> io::Result<()>;
-    fn write(&mut self, x: &[f64]) -> io::Result<()>;
+    fn read(&mut self, x: &mut [i16]) -> io::Result<()>;
+    fn write(&mut self, x: &[i16]) -> io::Result<()>;
+}
+
+pub fn sample(v: i16) -> f64 {
+    f64::from(v) / 32768.0
+}
+
+pub fn quantize(v: f64) -> i16 {
+    (v * 32768.0).round().clamp(-32768.0, 32767.0) as i16
 }
 
 pub struct TxAudio {
@@ -144,5 +152,20 @@ pub fn open_capture(b: Backend, capture: &str) -> io::Result<Box<dyn Audio>> {
         Backend::Alsa => Ok(Box::new(alsa::AlsaIo::open_capture(capture)?)),
         #[cfg(not(all(feature = "pulse", feature = "alsa")))]
         _ => Err(unbuilt(b)),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn samples_convert_at_the_device_boundary() {
+        for s in [i16::MIN, -1, 0, 1, 12345, i16::MAX] {
+            assert_eq!(quantize(sample(s)), s);
+        }
+        assert_eq!((quantize(1.0), quantize(-1.0), quantize(4.0), quantize(-4.0)), (32767, -32768, 32767, -32768));
+        assert_eq!((quantize(0.5 / 32768.0), quantize(-0.4 / 32768.0), quantize(f64::NAN)), (1, 0, 0));
+        assert_eq!(sample(-32768), -1.0);
     }
 }

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.1
+
+recording feature and bugfixes
+
+- `--record` flag captures rx, tx, and PTT in FLAC
+- bugfix: long squelch tails no longer trigger false receive
+- bugfix: phantom frames no longer send inappropriate compression
+
 ## 0.1.0
 
 first release

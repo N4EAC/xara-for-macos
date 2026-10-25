@@ -1,0 +1,100 @@
+name: bug report
+description: something doesn't work on air or with a host app
+body:
+  - type: input
+    id: version
+    attributes:
+      label: xara version
+      description: output of `xara --version`
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: mode
+      options:
+        - HF 500
+        - HF 2300
+        - HF 2750
+        - FM narrow
+        - FM wide
+    validations:
+      required: true
+  - type: input
+    id: host
+    attributes:
+      label: host app
+      description: what is talking to xara, include version (e.g., Pat 0.16.0, a KISS client, etc.)
+    validations:
+      required: true
+  - type: input
+    id: peer
+    attributes:
+      label: other station
+      description: software on the far end, include version, plus any digipeater in the path
+    validations:
+      required: true
+  - type: dropdown
+    id: direction
+    attributes:
+      label: who started the connection
+      options:
+        - i called them
+        - they called me
+        - both directions fail
+        - not a connection problem
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: what happened
+      description: what you saw and what you expected to see. include what the far end saw if you know
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: xara command line or config file
+      description: the full command line or config file, including audio, playback, ptt and drive-db settings
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: xara log
+      description: console output covering the failed attempt, from startup if possible
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: host-log
+    attributes:
+      label: host app log
+      description: the matching log from Pat or your other host app, if any
+      render: text
+  - type: textarea
+    id: station
+    attributes:
+      label: station
+      description: radio, audio interface, how PTT is keyed, and whether the host app also does rig control
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS and hardware
+      description: distro and version, and the machine (Raspberry Pi 4, x86 laptop, etc.)
+    validations:
+      required: true
+  - type: textarea
+    id: recording
+    attributes:
+      label: recording
+      description: run with `--record capture.flac` and attach it zipped (GitHub rejects bare .flac). keep it under about 2 minutes to fit GitHub's 25 MB limit
+  - type: textarea
+    id: extra
+    attributes:
+      label: screenshots
+      description: web UI screenshots or the far end's waterfall

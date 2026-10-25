@@ -300,12 +300,12 @@ fn run(a: Args, stop: &Arc<AtomicBool>) -> std::io::Result<()> {
             let mut io = audio::open_capture(a.audio.unwrap_or_default(), src)?;
             let epoch = now();
             say!("listening on {src}");
-            let (mut x, mut batch) = (vec![0.0; audio::BLOCK], Vec::new());
+            let (mut x, mut batch) = (vec![0i16; audio::BLOCK], Vec::new());
             pipe(&a, m, stop, "capture", &format!("capture {src}"), Some(epoch), |d| {
                 let r = (|| {
                     while !stop.load(Ordering::SeqCst) {
                         io.read(&mut x)?;
-                        batch.extend_from_slice(&x);
+                        batch.extend(x.iter().map(|&s| audio::sample(s)));
                         if batch.len() >= CAPTURE_BATCH && !d.send(std::mem::take(&mut batch)) {
                             break;
                         }

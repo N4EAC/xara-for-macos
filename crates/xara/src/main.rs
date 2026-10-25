@@ -6,6 +6,7 @@ use std::time::Duration;
 use xara::audio::{self, Audio, Backend};
 use xara::cli::{self, UiArgs, Usage, num};
 use xara::ptt::{PttCtl, PttSpec, PttTiming};
+use xara::record::{self, Recorder};
 use xara::say;
 use xara::signals;
 use xara::station::{self, DEFAULT_DRIVE_DB, Modem, Options};
@@ -31,6 +32,7 @@ const USAGE: Usage = Usage {
 const SECOND_SIGNAL_GRACE: Duration = Duration::from_secs(2);
 const EXIT_RESTART_FAILED: u8 = 75;
 const TOKEN_ENV: &str = "XARA_UI_TOKEN";
+const RECORD_PART_ENV: &str = "XARA_RECORD_PART";
 
 struct Args {
     audio: Backend,
@@ -55,6 +57,7 @@ struct Args {
     radio: bool,
     ptt: Option<PttSpec>,
     timing: PttTiming,
+    record: Option<PathBuf>,
     hf_given: bool,
 }
 
@@ -87,6 +90,7 @@ fn defaults() -> Args {
         radio: false,
         ptt: None,
         timing: PttTiming::default(),
+        record: None,
         hf_given: false,
     }
 }
@@ -142,6 +146,7 @@ fn take(a: &mut Args, k: &str, mut v: impl FnMut() -> Result<String, String>) ->
         "--ptt-lead-ms" => a.timing.lead = Duration::from_millis(num(k, &v()?)?),
         "--ptt-tail-ms" => a.timing.tail = Duration::from_millis(num(k, &v()?)?),
         "--ptt-max-s" => a.timing.max_on = Duration::from_secs(num(k, &v()?)?),
+        "--record" => a.record = Some(PathBuf::from(v()?)),
         #[cfg(feature = "registered")]
         "--registered" => a.registered = true,
         #[cfg(not(feature = "registered"))]
@@ -380,6 +385,7 @@ fn persist_drive(dir: &std::path::Path, db: f64) {
 
 struct Tick {
     keyed: bool,
+    tuning: bool,
     restart: bool,
 }
 
@@ -394,7 +400,13 @@ struct Outcome {
     pumped: Pumped,
 }
 
-fn run(a: &Args, io: Box<dyn Audio>, settings: Arc<Settings>, stop: &Arc<AtomicBool>) -> std::io::Result<Outcome> {
+fn run(
+    a: &Args,
+    io: Box<dyn Audio>,
+    settings: Arc<Settings>,
+    stop: &Arc<AtomicBool>,
+    rec: Option<&mut Recorder>,
+) -> std::io::Result<Outcome> {
     let opts = Options { drive_db: a.drive_db, tx_latency: lead_samples(a) as i64 };
     let host = Host::bind(&a.addr, a.port)?;
     let mode = match a.fm {
@@ -419,7 +431,7 @@ fn run(a: &Args, io: Box<dyn Audio>, settings: Arc<Settings>, stop: &Arc<AtomicB
             if !a.digi.is_empty() {
                 say!("FM digipeater {}", a.digi);
             }
-            serve(a, io, Tnc::new(station, host), settings, stop)
+            serve(a, io, Tnc::new(station, host), settings, stop, rec)
         }
         None => {
             let mut cfg = hf::Config {
@@ -429,7 +441,7 @@ fn run(a: &Args, io: Box<dyn Audio>, settings: Arc<Settings>, stop: &Arc<AtomicB
             cfg.host.registered = a.registered;
             let mut station = station::hf::Station::new(cfg, opts);
             station.set_persistence(a.persistence);
-            serve(a, io, Tnc::new(station, host), settings, stop)
+            serve(a, io, Tnc::new(station, host), settings, stop, rec)
         }
     }
 }
@@ -440,6 +452,7 @@ fn serve<M: Modem>(
     mut tnc: Tnc<M>,
     settings: Arc<Settings>,
     stop: &Arc<AtomicBool>,
+    rec: Option<&mut Recorder>,
 ) -> std::io::Result<Outcome> {
     if let Some(p) = a.kiss_port {
         let k = KissServer::bind(&a.addr, p)?;
@@ -469,10 +482,10 @@ fn serve<M: Modem>(
         }
         None => None,
     };
-    let pumped = pump(a, io.as_mut(), stop, |x, out, forced| {
+    let pumped = pump(a, io.as_mut(), stop, rec, |x, out, forced| {
         tnc.process(x, out);
         tnc.force_ptt_off(forced);
-        Tick { keyed: tnc.keyed(), restart: tnc.restart_requested() }
+        Tick { keyed: tnc.keyed(), tuning: tnc.station().tuning(), restart: tnc.restart_requested() }
     });
     Ok(Outcome { drive_db: tnc.station().options().drive_db, restart: tnc.restart_requested(), pumped })
 }
@@ -481,6 +494,7 @@ fn pump(
     a: &Args,
     io: &mut dyn Audio,
     stop: &Arc<AtomicBool>,
+    mut rec: Option<&mut Recorder>,
     mut process: impl FnMut(&[f64], &mut [f64], bool) -> Tick,
 ) -> Pumped {
     let mut ptt_result = Ok(());
@@ -504,18 +518,25 @@ fn pump(
     };
     let mut tx = audio::TxAudio::new(lead_samples(a));
     let (mut x, mut out) = (vec![0.0; audio::BLOCK], vec![0.0; audio::BLOCK]);
+    let (mut rx, mut sent) = (vec![0i16; audio::BLOCK], vec![0i16; audio::BLOCK]);
     let audio = (|| {
         while !stop.load(Ordering::SeqCst) {
-            io.read(&mut x)?;
-            let Tick { keyed, restart } = process(&x, &mut out, ptt.as_ref().is_some_and(PttCtl::forced_off));
+            io.read(&mut rx)?;
+            x.iter_mut().zip(&rx).for_each(|(v, &s)| *v = audio::sample(s));
+            let Tick { keyed, tuning, restart } = process(&x, &mut out, ptt.as_ref().is_some_and(PttCtl::forced_off));
             if keyed {
                 if let Err(e) = ptt.as_mut().map_or(Ok(()), |p| p.set(true)) {
                     ptt_result = Err(e);
                     break;
                 }
             }
-            tx.process(&mut out, ptt.as_ref().is_some_and(PttCtl::forced_off));
-            io.write(&out)?;
+            let forced = ptt.as_ref().is_some_and(PttCtl::forced_off);
+            tx.process(&mut out, forced);
+            sent.iter_mut().zip(&out).for_each(|(s, &v)| *s = audio::quantize(v));
+            io.write(&sent)?;
+            if let Some(r) = rec.as_deref_mut() {
+                r.push(&rx, &sent, record::ptt(keyed, forced, tuning));
+            }
             if !keyed {
                 if let Err(e) = ptt.as_mut().map_or(Ok(()), |p| p.set(false)) {
                     ptt_result = Err(e);
@@ -558,7 +579,7 @@ fn open_audio(
     }
 }
 
-fn restart(argv: &[String], token: Option<&str>) -> ExitCode {
+fn restart(argv: &[String], token: Option<&str>, record_part: Option<u32>) -> ExitCode {
     use std::os::unix::process::CommandExt;
     say!("restarting");
     let err = match std::env::current_exe() {
@@ -566,6 +587,9 @@ fn restart(argv: &[String], token: Option<&str>) -> ExitCode {
             let mut c = std::process::Command::new(exe);
             if let Some(t) = token {
                 c.env(TOKEN_ENV, t);
+            }
+            if let Some(n) = record_part {
+                c.env(RECORD_PART_ENV, n.to_string());
             }
             if let Some(a0) = std::env::args_os().next() {
                 c.arg0(a0);
@@ -587,7 +611,11 @@ fn main() -> ExitCode {
 
 fn real_main() -> Result<ExitCode, String> {
     let inherited = std::env::var(TOKEN_ENV).ok().filter(|t| valid_token(t));
-    unsafe { std::env::remove_var(TOKEN_ENV) };
+    let part: u32 = std::env::var(RECORD_PART_ENV).ok().and_then(|p| p.parse().ok()).unwrap_or(0);
+    unsafe {
+        std::env::remove_var(TOKEN_ENV);
+        std::env::remove_var(RECORD_PART_ENV);
+    }
     let cmdline: Vec<String> = std::env::args().skip(1).collect();
     let (config, argv) = match with_config(&cmdline) {
         Ok(c) => c,
@@ -657,11 +685,25 @@ fn real_main() -> Result<ExitCode, String> {
         validate: Box::new(move |kv| with_saved(&check, kv, fm).and_then(|a| check_saved_playback(&a, kv))),
         list: Box::new(move || devices(backend)),
     }));
-    let o = run(&a, io, settings, &stop).unwrap_or_else(|e| Outcome {
+    let mut rec = match &a.record {
+        Some(p) => {
+            let p = record::part(p, part);
+            let mode = match a.fm {
+                Some(bw) => format!("FM {bw:?}"),
+                None => format!("HF {}", a.bw.hz()),
+            };
+            let r = Recorder::open(&p, &mode).map_err(|e| format!("--record {}: {e}", p.display()))?;
+            say!("recording rx, tx and PTT to {}", p.display());
+            Some(r)
+        }
+        None => None,
+    };
+    let o = run(&a, io, settings, &stop, rec.as_mut()).unwrap_or_else(|e| Outcome {
         drive_db: a.drive_db,
         restart: false,
         pumped: Pumped { audio: Err(e), ptt: Ok(()) },
     });
+    drop(rec);
     let Pumped { audio, ptt } = o.pumped;
     if let (Some(d), Ok(())) = (&dir, &audio) {
         if o.drive_db != a.drive_db {
@@ -683,7 +725,7 @@ fn real_main() -> Result<ExitCode, String> {
     }
     audio.map_err(|e| e.to_string())?;
     match o.restart {
-        true => Ok(restart(&cmdline, a.ui_token.as_deref())),
+        true => Ok(restart(&cmdline, a.ui_token.as_deref(), a.record.as_ref().map(|_| part + 1))),
         false => Ok(ExitCode::SUCCESS),
     }
 }
@@ -762,6 +804,16 @@ mod tests {
         let a = parse(&all).unwrap().unwrap();
         assert_eq!((a.call.as_str(), a.radio, a.quiet, a.ui.port), ("N2CALL", true, false, Some(8080)));
         assert_eq!(a.ui.hosts, ["a.lan", "b.lan"]);
+        std::fs::remove_dir_all(p.parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn record_takes_a_path_from_the_command_line_or_a_config() {
+        let a = parse(&argv("--call N2CALL --capture c --playback p --record /tmp/x.wav")).unwrap().unwrap();
+        assert_eq!(a.record.as_deref(), Some(Path::new("/tmp/x.wav")));
+        assert!(parse(&argv("--call N2CALL --capture c --playback p --record")).is_err());
+        let p = conf("conf-record", "record = cap.flac\n");
+        assert_eq!(config_args(&p).unwrap(), argv("--record cap.flac"));
         std::fs::remove_dir_all(p.parent().unwrap()).unwrap();
     }
 

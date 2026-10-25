@@ -6,7 +6,7 @@ use std::marker::PhantomData;
 use std::ptr;
 use std::time::{Duration, Instant};
 
-use super::{Audio, BLOCK, DeviceList, RATE, STALL, capture_only, remaining};
+use super::{Audio, BLOCK, DeviceList, RATE, STALL, capture_only, quantize, remaining, sample};
 
 type Frames = sys::snd_pcm_uframes_t;
 
@@ -530,12 +530,12 @@ impl Pcm {
                 "snd_pcm_hw_params_set_access",
                 sys::snd_pcm_hw_params_set_access(p, hw.0, sys::SND_PCM_ACCESS_RW_INTERLEAVED),
             )?;
-            [Format::FloatLE, Format::S32LE, Format::S16LE]
+            [Format::S16LE, Format::S32LE, Format::FloatLE]
                 .into_iter()
                 .find(|&f| sys::snd_pcm_hw_params_test_format(p, hw.0, f.code()) >= 0)
         };
         let format = found
-            .ok_or_else(|| io::Error::other(format!("{}: no FLOAT_LE, S32_LE or S16_LE sample format", self.name)))?;
+            .ok_or_else(|| io::Error::other(format!("{}: no S16_LE, S32_LE or FLOAT_LE sample format", self.name)))?;
         // SAFETY: p is an open PCM and hw is a live hw_params block.
         let rate_set = unsafe {
             ok("snd_pcm_hw_params_set_format", sys::snd_pcm_hw_params_set_format(p, hw.0, format.code()))?;
@@ -646,19 +646,19 @@ impl Pcm {
     }
 }
 
-fn put(buf: &mut Vec<u8>, format: Format, v: f64) {
+fn put(buf: &mut Vec<u8>, format: Format, v: i16) {
     match format {
-        Format::S16LE => buf.extend_from_slice(&((v.clamp(-1.0, 1.0) * 32767.0).round() as i16).to_le_bytes()),
-        Format::S32LE => buf.extend_from_slice(&((v.clamp(-1.0, 1.0) * 2147483647.0).round() as i32).to_le_bytes()),
-        _ => buf.extend_from_slice(&(v as f32).to_le_bytes()),
+        Format::S16LE => buf.extend_from_slice(&v.to_le_bytes()),
+        Format::S32LE => buf.extend_from_slice(&(i32::from(v) << 16).to_le_bytes()),
+        _ => buf.extend_from_slice(&(sample(v) as f32).to_le_bytes()),
     }
 }
 
-fn get(f: &[u8], format: Format) -> f64 {
+fn get(f: &[u8], format: Format) -> i16 {
     match format {
-        Format::S16LE => crate::wav::s16(f),
-        Format::S32LE => f64::from(i32::from_le_bytes([f[0], f[1], f[2], f[3]])) / 2147483648.0,
-        _ => f64::from(f32::from_le_bytes([f[0], f[1], f[2], f[3]])),
+        Format::S16LE => i16::from_le_bytes([f[0], f[1]]),
+        Format::S32LE => quantize(f64::from(i32::from_le_bytes([f[0], f[1], f[2], f[3]])) / 2147483648.0),
+        _ => quantize(f64::from(f32::from_le_bytes([f[0], f[1], f[2], f[3]]))),
     }
 }
 
@@ -692,7 +692,7 @@ impl AlsaIo {
 }
 
 impl Audio for AlsaIo {
-    fn read(&mut self, x: &mut [f64]) -> io::Result<()> {
+    fn read(&mut self, x: &mut [i16]) -> io::Result<()> {
         let r = &mut self.rec;
         let frame = r.frame();
         let need = x.len() * frame;
@@ -713,7 +713,7 @@ impl Audio for AlsaIo {
         Ok(())
     }
 
-    fn write(&mut self, x: &[f64]) -> io::Result<()> {
+    fn write(&mut self, x: &[i16]) -> io::Result<()> {
         let Some(p) = &mut self.play else { return Err(capture_only()) };
         p.buf.clear();
         for &v in x {
@@ -853,16 +853,19 @@ mod tests {
 
     #[test]
     fn samples_round_trip_through_the_device_formats() {
-        for (f, w, tol) in [(Format::FloatLE, 4, 1e-7), (Format::S32LE, 4, 1e-9), (Format::S16LE, 2, 2.0 / 32768.0)] {
-            for v in [0.0, 0.5, -0.5, 0.999, -1.0] {
+        for (f, w) in [(Format::FloatLE, 4), (Format::S32LE, 4), (Format::S16LE, 2)] {
+            for v in [0, 1, -1, 16384, -16384, 32767, -32768] {
                 let mut b = Vec::new();
                 put(&mut b, f, v);
                 assert_eq!(b.len(), w);
-                assert!((get(&b, f) - v).abs() <= tol, "{f} {v} {}", get(&b, f));
+                assert_eq!(get(&b, f), v, "{f} {v}");
             }
         }
         let mut b = Vec::new();
-        put(&mut b, Format::S16LE, 4.0);
-        assert_eq!(b, 32767i16.to_le_bytes());
+        put(&mut b, Format::S32LE, -32768);
+        assert_eq!(b, i32::MIN.to_le_bytes());
+        assert_eq!(get(&2.0f32.to_le_bytes(), Format::FloatLE), 32767);
+        assert_eq!(get(&i32::MAX.to_le_bytes(), Format::S32LE), 32767);
+        assert_eq!(get(&(-3.0f32).to_le_bytes(), Format::FloatLE), -32768);
     }
 }

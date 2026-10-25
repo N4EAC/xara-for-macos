@@ -2,8 +2,10 @@
 pub mod log;
 pub mod audio;
 pub mod cli;
+pub mod flac;
 pub mod monitor;
 pub mod ptt;
+pub mod record;
 pub mod resample;
 pub mod signals;
 pub mod station;

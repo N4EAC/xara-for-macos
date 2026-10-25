@@ -67,6 +67,7 @@ alternatively for a local setup you can do:
     --registered            enable registered speeds (must set build flag)
 
     --digi CALL             FM digipeat for CALL (default: off)
+    --record PATH           record rx, tx and PTT to FLAC (or WAV if .wav)
     --quiet                 no output
     --version and --help    guess
 

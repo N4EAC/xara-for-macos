@@ -1,4 +1,4 @@
-use std::io;
+use std::io::{self, Seek, SeekFrom, Write};
 
 pub struct Wav {
     pub rate: u32,
@@ -26,6 +26,11 @@ pub fn read(path: &std::path::Path) -> io::Result<Wav> {
 }
 
 fn parse(b: &[u8]) -> io::Result<Wav> {
+    if b.starts_with(b"fLaC") {
+        let c = crate::flac::parse(b)?;
+        let [rx, ..] = c.channels;
+        return Ok(Wav { rate: c.rate, samples: rx.into_iter().map(crate::audio::sample).collect() });
+    }
     if b.len() < 12 || &b[..4] != b"RIFF" || &b[8..12] != b"WAVE" {
         return Err(bad("not a RIFF/WAVE file"));
     }
@@ -80,6 +85,47 @@ fn parse(b: &[u8]) -> io::Result<Wav> {
     Err(bad("no data chunk"))
 }
 
+pub struct Writer<W: Write + Seek> {
+    out: W,
+    bytes: u32,
+}
+
+impl<W: Write + Seek> Writer<W> {
+    pub fn new(mut out: W, channels: u16, rate: u32) -> io::Result<Self> {
+        let frame = u32::from(channels) * 2;
+        let mut h = b"RIFF\xff\xff\xff\xffWAVEfmt \x10\0\0\0\x01\0".to_vec();
+        h.extend(channels.to_le_bytes());
+        h.extend(rate.to_le_bytes());
+        h.extend((rate * frame).to_le_bytes());
+        h.extend((frame as u16).to_le_bytes());
+        h.extend(16u16.to_le_bytes());
+        h.extend(b"data\xff\xff\xff\xff");
+        out.write_all(&h)?;
+        Ok(Self { out, bytes: 0 })
+    }
+
+    pub fn write(&mut self, interleaved: &[i16]) -> io::Result<bool> {
+        let n = u32::try_from(interleaved.len() * 2).ok();
+        let Some(bytes) = n.and_then(|n| self.bytes.checked_add(n)).filter(|&b| b <= u32::MAX - 36) else {
+            return Ok(false);
+        };
+        let pcm: Vec<u8> = interleaved.iter().flat_map(|v| v.to_le_bytes()).collect();
+        self.out.write_all(&pcm)?;
+        self.bytes = bytes;
+        Ok(true)
+    }
+
+    pub fn finish(mut self) -> io::Result<W> {
+        self.out.seek(SeekFrom::Start(4))?;
+        self.out.write_all(&(36 + self.bytes).to_le_bytes())?;
+        self.out.seek(SeekFrom::Start(40))?;
+        self.out.write_all(&self.bytes.to_le_bytes())?;
+        self.out.seek(SeekFrom::End(0))?;
+        self.out.flush()?;
+        Ok(self.out)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -112,6 +158,41 @@ mod tests {
         let pcm: Vec<u8> = [0i16, 16384, -32768].iter().flat_map(|v| v.to_le_bytes()).collect();
         let w = parse(&riff(&[fmt(1, 1, 12000, 16), chunk(b"data", 6, &pcm)])).unwrap();
         assert_eq!((w.rate, w.samples), (12000, vec![0.0, 0.5, -1.0]));
+    }
+
+    #[test]
+    fn a_xara_flac_capture_reads_as_its_rx_channel() {
+        let mut w = crate::flac::Writer::new(io::Cursor::new(Vec::new()), &[]).unwrap();
+        w.write([&[0, 16384, -32768], &[1, 2, 3], &[0; 3]]).unwrap();
+        let w = parse(&w.finish().unwrap().into_inner()).unwrap();
+        assert_eq!((w.rate, w.samples), (48000, vec![0.0, 0.5, -1.0]));
+    }
+
+    #[test]
+    fn the_writer_patches_sizes_on_finish() {
+        let mut w = Writer::new(io::Cursor::new(Vec::new()), 3, 48000).unwrap();
+        assert!(w.write(&[0, 1, 2, 16384, -32768, 3]).unwrap());
+        let open = w.out.get_ref().clone();
+        assert_eq!((&open[4..8], &open[40..44]), (&[0xFF; 4][..], &[0xFF; 4][..]));
+        assert_eq!(parse(&open).unwrap().samples, [0.0, 0.5]);
+        let b = w.finish().unwrap().into_inner();
+        let mut want = b"RIFF\x30\0\0\0WAVEfmt \x10\0\0\0\x01\0\x03\0".to_vec();
+        want.extend(48000u32.to_le_bytes());
+        want.extend((48000u32 * 6).to_le_bytes());
+        want.extend(b"\x06\0\x10\0data\x0c\0\0\0");
+        assert_eq!(b[..44], want[..]);
+        assert_eq!(b.len(), 56);
+        let w = parse(&b).unwrap();
+        assert_eq!((w.rate, w.samples), (48000, vec![0.0, 0.5]));
+    }
+
+    #[test]
+    fn the_writer_stops_short_of_4_gb() {
+        let mut w = Writer::new(io::Cursor::new(Vec::new()), 3, 48000).unwrap();
+        w.bytes = u32::MAX - 36 - 6;
+        assert!(w.write(&[0; 3]).unwrap());
+        assert!(!w.write(&[0; 3]).unwrap());
+        assert_eq!(w.bytes, u32::MAX - 36);
     }
 
     #[test]

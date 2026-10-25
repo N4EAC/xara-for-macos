@@ -2,7 +2,7 @@
 title: XARA
 section: 1
 header: User Commands
-date: 2026-10-20
+date: 2026-10-24
 ---
 
 # NAME
@@ -62,6 +62,10 @@ along with KISS for applications such as Pat. See the README for full details.
 **--digi** *CALL*
 
 :   FM only: also digipeat for *CALL*.
+
+**--record** *PATH*
+
+:   Record RX, TX, and PTT to FLAC (or WAV if filename ends in .wav).
 
 **--port** *N*
 

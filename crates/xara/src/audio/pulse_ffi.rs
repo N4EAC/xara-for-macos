@@ -11,7 +11,7 @@ type Raw = c_void;
 type ListCb<T> = extern "C" fn(*mut Raw, *const T, c_int, *mut c_void);
 type ListFn<T> = unsafe extern "C" fn(*mut Raw, ListCb<T>, *mut c_void) -> *mut Raw;
 
-pub const FLOAT32LE: c_int = 5;
+pub const S16LE: c_int = 3;
 pub const STREAM_DONT_MOVE: c_int = 0x0200;
 pub const STREAM_ADJUST_LATENCY: c_int = 0x2000;
 const CONTEXT_NOAUTOSPAWN: c_int = 1;

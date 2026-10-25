@@ -1,13 +1,11 @@
 use std::io;
 use std::time::{Duration, Instant};
 
-use super::pulse_ffi::{
-    BufferAttr, Conn, FLOAT32LE, Peek, STREAM_ADJUST_LATENCY, STREAM_DONT_MOVE, SampleSpec, Stream,
-};
+use super::pulse_ffi::{BufferAttr, Conn, Peek, S16LE, STREAM_ADJUST_LATENCY, STREAM_DONT_MOVE, SampleSpec, Stream};
 use super::{Audio, DeviceList, RATE, STALL, capture_only};
 
 const SETUP: Duration = Duration::from_secs(5);
-const SPEC: SampleSpec = SampleSpec { format: FLOAT32LE, rate: RATE, channels: 1 };
+const SPEC: SampleSpec = SampleSpec { format: S16LE, rate: RATE, channels: 1 };
 
 fn connect() -> io::Result<Conn> {
     Conn::open(Instant::now() + SETUP)
@@ -91,7 +89,7 @@ fn check_playback(sinks: &[Sink], name: &str, radio: bool) -> io::Result<()> {
 }
 
 fn bytes(ms: u32) -> u32 {
-    RATE / 1000 * ms * 4
+    RATE / 1000 * ms * 2
 }
 
 pub struct PulseIo {
@@ -152,8 +150,8 @@ impl PulseIo {
 }
 
 impl Audio for PulseIo {
-    fn read(&mut self, x: &mut [f64]) -> io::Result<()> {
-        let need = 4 * x.len();
+    fn read(&mut self, x: &mut [i16]) -> io::Result<()> {
+        let need = 2 * x.len();
         let until = Instant::now() + STALL;
         while self.rx.len() < need {
             self.rec.live("capture")?;
@@ -167,22 +165,22 @@ impl Audio for PulseIo {
             }
             self.rec.discard("capture")?;
         }
-        for (v, c) in x.iter_mut().zip(self.rx.chunks_exact(4)) {
-            *v = f64::from(f32::from_le_bytes(c.try_into().unwrap()));
+        for (v, c) in x.iter_mut().zip(self.rx.chunks_exact(2)) {
+            *v = i16::from_le_bytes([c[0], c[1]]);
         }
         self.rx.drain(..need);
         Ok(())
     }
 
-    fn write(&mut self, x: &[f64]) -> io::Result<()> {
+    fn write(&mut self, x: &[i16]) -> io::Result<()> {
         let Some(play) = &mut self.play else { return Err(capture_only()) };
         self.tx.clear();
-        self.tx.extend(x.iter().flat_map(|&v| (v as f32).to_le_bytes()));
+        self.tx.extend(x.iter().flat_map(|v| v.to_le_bytes()));
         let mut off = 0;
         let until = Instant::now() + STALL;
         while off < self.tx.len() {
             play.live("playback")?;
-            let n = play.writable_size().min(self.tx.len() - off) & !3;
+            let n = play.writable_size().min(self.tx.len() - off) & !1;
             if n == 0 {
                 self.conn.iterate(until, "playback (sink not draining)")?;
                 continue;
