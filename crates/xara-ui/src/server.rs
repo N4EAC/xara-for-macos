@@ -9,7 +9,7 @@ use std::io::{self, Read, Write};
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, TcpListener, TcpStream};
 use std::path::Path;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender, channel};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -181,9 +181,19 @@ impl Audio {
 
 pub struct UiServer {
     pub addr: SocketAddr,
+    stop: Arc<AtomicBool>,
+    workers: Vec<thread::JoinHandle<()>>,
 }
 
 impl UiServer {
+    /// Explicit shutdown keeps existing detached-server users compatible.
+    pub fn shutdown(self) {
+        self.stop.store(true, Ordering::SeqCst);
+        for worker in self.workers {
+            let _ = worker.join();
+        }
+    }
+
     pub fn bind(addr: &str, port: u16, feed: Feed, info: Info, access: Access) -> io::Result<Self> {
         let controls: Box<dyn Controls> = Box::new(feed.controller());
         serve(addr, port, feed, Some(controls), info, MODEM, access)
@@ -212,6 +222,7 @@ fn serve(
 ) -> io::Result<UiServer> {
     let l = TcpListener::bind((addr, port))?;
     let local = l.local_addr()?;
+    l.set_nonblocking(true)?;
     if let Ok(h) = std::fs::read_to_string("/proc/sys/kernel/hostname") {
         access.hosts.push(h.trim().to_string());
     }
@@ -219,9 +230,12 @@ fn serve(
     let open = [Arc::default(), Arc::default()];
     let ctx = Arc::new(Ctx { access, cookie, pages, open });
     let (tx, rx) = channel();
-    thread::Builder::new().name("ui-hub".into()).spawn(move || hub(src, controls, info, rx))?;
-    thread::Builder::new().name("ui-accept".into()).spawn(move || accept(l, tx, ctx))?;
-    Ok(UiServer { addr: local })
+    let stop = Arc::<AtomicBool>::default();
+    let stopping = stop.clone();
+    let hub = thread::Builder::new().name("ui-hub".into()).spawn(move || hub(src, controls, info, rx, stopping))?;
+    let stopping = stop.clone();
+    let accept = thread::Builder::new().name("ui-accept".into()).spawn(move || accept(l, tx, ctx, stopping))?;
+    Ok(UiServer { addr: local, stop, workers: vec![hub, accept] })
 }
 
 pub fn new_token() -> io::Result<String> {
@@ -276,11 +290,12 @@ impl Drop for Permit {
     }
 }
 
-fn accept(l: TcpListener, joins: Sender<Msg>, ctx: Arc<Ctx>) {
+fn accept(l: TcpListener, joins: Sender<Msg>, ctx: Arc<Ctx>, stop: Arc<AtomicBool>) {
     let pending = Arc::new(AtomicUsize::new(0));
-    loop {
+    while !stop.load(Ordering::SeqCst) {
         match l.accept() {
             Ok((s, _)) => {
+                let _ = s.set_nonblocking(false);
                 let Some(p) = Permit::take(&pending, MAX_PENDING) else { continue };
                 let (j, c) = (joins.clone(), ctx.clone());
                 if thread::Builder::new().spawn(move || handle(s, p, j, &c)).is_err() {
@@ -292,13 +307,25 @@ fn accept(l: TcpListener, joins: Sender<Msg>, ctx: Arc<Ctx>) {
     }
 }
 
-fn hub(mut src: impl Source, mut controls: Option<Box<dyn Controls>>, info: Info, msgs: Receiver<Msg>) {
+fn hub(
+    mut src: impl Source,
+    mut controls: Option<Box<dyn Controls>>,
+    info: Info,
+    msgs: Receiver<Msg>,
+    stop: Arc<AtomicBool>,
+) {
     let mut clients: Vec<Client> = Vec::new();
     let mut history: VecDeque<String> = VecDeque::new();
     let mut audio = Audio { wf: Waterfall::new(info.span_hz), wanted: false, rows: Vec::new() };
     let mut next = Instant::now() + TICK;
     let mut ticks = 0u32;
     loop {
+        if stop.load(Ordering::SeqCst) {
+            for client in clients {
+                client.w.close();
+            }
+            return;
+        }
         match msgs.recv_timeout(next.saturating_duration_since(Instant::now())) {
             Ok(Msg::Waterfall(id, on)) => {
                 if let Some(c) = clients.iter_mut().find(|c| c.id == id) {

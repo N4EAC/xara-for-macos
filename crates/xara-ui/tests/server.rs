@@ -77,7 +77,7 @@ fn static_files_and_errors() {
     let (_t, addr) = start();
     let (st, body) = get(addr, "GET / HTTP/1.1");
     assert_eq!(st, "HTTP/1.1 200 OK");
-    assert!(body.contains("<title>xara</title>") && body.contains("app.js"));
+    assert!(body.contains("<title>XARA</title>") && body.contains("app.js"));
     assert_eq!(get(addr, "GET /app.js HTTP/1.1").0, "HTTP/1.1 200 OK");
     assert_eq!(get(addr, "GET /style.css?v=2 HTTP/1.1").0, "HTTP/1.1 200 OK");
     assert_eq!(get(addr, "GET /etc/passwd HTTP/1.1").0, "HTTP/1.1 404 Not Found");
@@ -524,4 +524,13 @@ fn fragmented_commands_and_protocol_errors() {
         }
     };
     assert_eq!(close, (ws::CLOSE, 1002u16.to_be_bytes().to_vec()));
+}
+
+#[test]
+fn explicit_shutdown_releases_the_ui_port() {
+    let (_t, feed) = xara_ui::telemetry::channel(4);
+    let ui = xara_ui::server::UiServer::bind("127.0.0.1", 0, feed, INFO, Default::default()).unwrap();
+    let address = ui.addr;
+    ui.shutdown();
+    let _listener = std::net::TcpListener::bind(address).unwrap();
 }

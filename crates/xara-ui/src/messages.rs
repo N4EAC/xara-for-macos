@@ -100,6 +100,7 @@ pub(crate) fn status(s: &Snapshot) -> String {
         .opt_obj("bitrate", bitrate)
         .int("buffer", s.buffered as u64)
         .strs("calls", &s.calls)
+        .int("received_bytes", s.received_bytes)
         .int("dropped", s.dropped as u64)
         .end()
 }
@@ -126,6 +127,8 @@ pub(crate) fn event(at: Time, e: &Event) -> String {
     let o = |t: &str| Obj::typed(t).num2("ts", secs(at));
     match e {
         Event::Host(r) => host(o("host").str("line", &r.to_string()), r),
+        Event::Signal(name) => o("signal").str("name", name).end(),
+        Event::Received { bytes, preview } => o("data").int("bytes", *bytes as u64).str("preview", preview).end(),
         Event::Trace(s) => o("trace").str("text", s).end(),
         Event::UnableToConnect => o("notice").str("kind", "unable_to_connect").end(),
         Event::TimedOut => o("notice").str("kind", "timed_out").end(),
@@ -195,7 +198,7 @@ mod tests {
         s.rx.feed(&[0.5; 4]);
         assert_eq!(
             status(&s),
-            r#"{"t":"status","ts":1.5,"rx":{"rms":-6.02,"peak":-6.02,"clip":0},"tx":{"rms":-120,"peak":-120,"clip":0},"ptt":true,"busy":false,"tuning":false,"tune_left":0,"drive":0,"state":"Receiving","level":7,"peer":"N1CALL","bw":"2300","passband":[350,2650],"attempts":0,"retries":0,"afc":null,"sn":11.25,"bitrate":{"level":7,"bps":2412,"tx":false},"buffer":0,"calls":["N0CALL"],"dropped":0}"#
+            r#"{"t":"status","ts":1.5,"rx":{"rms":-6.02,"peak":-6.02,"clip":0},"tx":{"rms":-120,"peak":-120,"clip":0},"ptt":true,"busy":false,"tuning":false,"tune_left":0,"drive":0,"state":"Receiving","level":7,"peer":"N1CALL","bw":"2300","passband":[350,2650],"attempts":0,"retries":0,"afc":null,"sn":11.25,"bitrate":{"level":7,"bps":2412,"tx":false},"buffer":0,"calls":["N0CALL"],"received_bytes":0,"dropped":0}"#
         );
     }
 
@@ -210,6 +213,11 @@ mod tests {
         assert_eq!(
             event(96_000, &Event::Host(c)),
             r#"{"t":"host","ts":2,"line":"CONNECTED A B VIA D NARROW","kind":"connected","caller":"A","answerer":"B","vias":["D"],"bw":"narrow"}"#
+        );
+        assert_eq!(event(0, &Event::Signal("ACK")), r#"{"t":"signal","ts":0,"name":"ACK"}"#);
+        assert_eq!(
+            event(0, &Event::Received { bytes: 4, preview: "A\n\"B".into() }),
+            r#"{"t":"data","ts":0,"bytes":4,"preview":"A\n\"B"}"#
         );
         assert_eq!(event(0, &Event::TimedOut), r#"{"t":"notice","ts":0,"kind":"timed_out"}"#);
         assert_eq!(event(0, &Event::Trace("rx \"x\"".into())), r#"{"t":"trace","ts":0,"text":"rx \"x\""}"#);

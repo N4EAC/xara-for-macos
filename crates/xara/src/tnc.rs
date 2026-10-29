@@ -70,6 +70,13 @@ impl<M: Modem> Tnc<M> {
         }
     }
 
+    pub fn shutdown(&mut self) {
+        self.host.shutdown();
+        if let Some(kiss) = &mut self.kiss {
+            kiss.shutdown();
+        }
+    }
+
     pub fn station(&self) -> &M {
         &self.station
     }
@@ -305,6 +312,7 @@ impl<M: Modem> Tnc<M> {
         self.host.line(&s);
         let Some(t) = &self.telemetry else { return };
         match r {
+            Response::Connected { .. } => t.update(|s| s.received_bytes = 0),
             Response::Sn(sn) => t.update(|s| s.sn = Some(sn)),
             Response::Bitrate { level, bps, tx } => t.update(|s| s.bitrate = Some(Bitrate { level, bps, tx })),
             Response::Disconnected => t.update(|s| (s.sn, s.bitrate) = (None, None)),
@@ -482,6 +490,7 @@ impl<M: Modem> Tnc<M> {
     fn flush(&mut self) {
         while let Some(r) = self.station.pop() {
             match r {
+                Report::Signal(name) => self.emit(|| Event::Signal(name)),
                 Report::Trace(t) => self.trace(&t),
                 Report::Ptt(on) => {
                     self.keyed = on;
@@ -502,7 +511,20 @@ impl<M: Modem> Tnc<M> {
                     }
                 }
                 Report::Bitrate { level, bps, tx } => self.say(Response::Bitrate { level, bps, tx }),
-                Report::Host(HostEvent::Data(d)) => self.host.data(&d),
+                Report::Host(HostEvent::Data(d)) => {
+                    self.host.data(&d);
+                    if let Some(t) = &self.telemetry {
+                        t.update(|s| s.received_bytes = s.received_bytes.saturating_add(d.len() as u64));
+                        // Bound each preview so a payload cannot exhaust the UI event queue.
+                        t.event(
+                            self.station.now(),
+                            Event::Received {
+                                bytes: d.len(),
+                                preview: String::from_utf8_lossy(&d[..d.len().min(256)]).into_owned(),
+                            },
+                        );
+                    }
+                }
                 Report::Host(HostEvent::Disconnected) => {
                     let deferred = self.deferred_mycall.take();
                     if let Some(Err(Invalid)) = deferred {

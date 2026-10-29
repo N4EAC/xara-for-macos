@@ -3,6 +3,7 @@ use crate::writer::Writer;
 use std::io::{self, Read};
 use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::os::fd::AsRawFd;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, SyncSender, sync_channel};
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
@@ -66,6 +67,8 @@ pub struct Host {
     pub input: Receiver<Input>,
     clients: Shared,
     hold: Arc<Hold>,
+    stop: Arc<AtomicBool>,
+    workers: Vec<thread::JoinHandle<()>>,
     pub cmd_addr: SocketAddr,
     pub data_addr: SocketAddr,
 }
@@ -81,16 +84,34 @@ impl Host {
         let (tx, input) = sync_channel(INPUT_QUEUE);
         let clients = Shared::default();
         let hold = Arc::<Hold>::default();
-        let h = Self {
+        let mut h = Self {
             input,
             clients: clients.clone(),
             hold: hold.clone(),
+            stop: Arc::default(),
+            workers: Vec::new(),
             cmd_addr: cl.local_addr()?,
             data_addr: dl.local_addr()?,
         };
-        serve(cl, Port::Cmd, clients.clone(), tx.clone(), hold.clone())?;
-        serve(dl, Port::Data, clients, tx, hold)?;
+        h.workers.push(serve(cl, Port::Cmd, clients.clone(), tx.clone(), hold.clone(), h.stop.clone())?);
+        h.workers.push(serve(dl, Port::Data, clients, tx, hold, h.stop.clone())?);
         Ok(h)
+    }
+
+    /// Stop listener/client threads before restarting an embedded modem.
+    pub fn shutdown(&mut self) {
+        self.stop.store(true, Ordering::SeqCst);
+        self.hold.set(false);
+        {
+            let mut clients = self.clients.lock().unwrap();
+            for w in [clients.cmd.take(), clients.data.take()].into_iter().flatten() {
+                w.close();
+            }
+        }
+        while self.input.try_recv().is_ok() {}
+        for worker in self.workers.drain(..) {
+            let _ = worker.join();
+        }
     }
 
     pub fn hold_data(&self, on: bool) {
@@ -126,6 +147,7 @@ impl Drop for Host {
     }
 }
 
+#[cfg(not(target_os = "macos"))]
 fn set_reuse(l: &TcpListener, on: bool) -> io::Result<()> {
     let v: libc::c_int = on.into();
     let len = std::mem::size_of_val(&v) as libc::socklen_t;
@@ -137,6 +159,7 @@ fn set_reuse(l: &TcpListener, on: bool) -> io::Result<()> {
     Ok(())
 }
 
+#[cfg(not(target_os = "macos"))]
 fn pause(l: &TcpListener) -> io::Result<()> {
     if unsafe { libc::shutdown(l.as_raw_fd(), libc::SHUT_RD) } != 0 {
         return Err(io::Error::last_os_error());
@@ -144,6 +167,7 @@ fn pause(l: &TcpListener) -> io::Result<()> {
     set_reuse(l, false)
 }
 
+#[cfg(not(target_os = "macos"))]
 fn resume(l: &TcpListener) -> io::Result<()> {
     set_reuse(l, true)?;
     if unsafe { libc::listen(l.as_raw_fd(), 128) } != 0 {
@@ -167,13 +191,22 @@ fn bind_fixed(addr: &str, port: u16) -> io::Result<TcpListener> {
     Err(io::Error::new(io::ErrorKind::AddrInUse, "no free port"))
 }
 
-fn serve(l: TcpListener, port: Port, clients: Shared, tx: SyncSender<Input>, hold: Arc<Hold>) -> io::Result<()> {
+#[cfg(not(target_os = "macos"))]
+fn serve(
+    l: TcpListener,
+    port: Port,
+    clients: Shared,
+    tx: SyncSender<Input>,
+    hold: Arc<Hold>,
+    stop: Arc<AtomicBool>,
+) -> io::Result<thread::JoinHandle<()>> {
+    l.set_nonblocking(true)?;
     let name = match port {
         Port::Cmd => "host-cmd-accept",
         Port::Data => "host-data-accept",
     };
     thread::Builder::new().name(name.into()).spawn(move || {
-        loop {
+        while !stop.load(Ordering::SeqCst) {
             let s = match l.accept() {
                 Ok((s, _)) => s,
                 Err(_) => {
@@ -181,27 +214,103 @@ fn serve(l: TcpListener, port: Port, clients: Shared, tx: SyncSender<Input>, hol
                     continue;
                 }
             };
+            if stop.load(Ordering::SeqCst) {
+                break;
+            }
+            let _ = s.set_nonblocking(false);
             if let Err(e) = pause(&l) {
                 eprintln!("xara: {name} cannot refuse a second client: {e}");
             }
-            if attach(s, port, &clients, &tx, &hold).is_err() {
+            if attach(s, port, &clients, &tx, &hold, &stop).is_err() {
                 return;
             }
             if let Err(e) = resume(&l) {
                 eprintln!("xara: {name} cannot listen again, retrying: {e}");
-                while resume(&l).is_err() {
+                while !stop.load(Ordering::SeqCst) && resume(&l).is_err() {
                     thread::sleep(ACCEPT_BACKOFF);
                 }
             }
         }
-    })?;
-    Ok(())
+    })
 }
 
-fn attach(s: TcpStream, port: Port, clients: &Shared, tx: &SyncSender<Input>, hold: &Hold) -> Result<(), ()> {
+// Darwin cannot shutdown a listening socket while keeping its port reserved.
+// Keep accepting while its single reader runs, and immediately reset extra clients.
+#[cfg(target_os = "macos")]
+fn serve(
+    l: TcpListener,
+    port: Port,
+    clients: Shared,
+    tx: SyncSender<Input>,
+    hold: Arc<Hold>,
+    stop: Arc<AtomicBool>,
+) -> io::Result<thread::JoinHandle<()>> {
+    l.set_nonblocking(true)?;
+    thread::Builder::new().name("host-accept".into()).spawn(move || {
+        let mut reader: Option<thread::JoinHandle<()>> = None;
+        while !stop.load(Ordering::SeqCst) {
+            if reader.as_ref().is_some_and(|r| r.is_finished()) {
+                if let Some(reader) = reader.take() {
+                    let _ = reader.join();
+                }
+            }
+            let socket = match l.accept() {
+                Ok((socket, _)) => socket,
+                Err(_) => {
+                    thread::sleep(Duration::from_millis(10));
+                    continue;
+                }
+            };
+            if stop.load(Ordering::SeqCst) {
+                break;
+            }
+            if reader.is_some() {
+                let linger = libc::linger { l_onoff: 1, l_linger: 0 };
+                // SAFETY: socket is valid and linger has the size passed to setsockopt.
+                unsafe {
+                    libc::setsockopt(
+                        socket.as_raw_fd(),
+                        libc::SOL_SOCKET,
+                        libc::SO_LINGER,
+                        (&raw const linger).cast(),
+                        std::mem::size_of_val(&linger) as libc::socklen_t,
+                    );
+                }
+                continue;
+            }
+            let _ = socket.set_nonblocking(false);
+            let (clients, tx, hold, stopping) = (clients.clone(), tx.clone(), hold.clone(), stop.clone());
+            reader = thread::Builder::new()
+                .name("host-client".into())
+                .spawn(move || {
+                    let _ = attach(socket, port, &clients, &tx, &hold, &stopping);
+                })
+                .ok();
+        }
+        if let Some(reader) = reader {
+            let _ = reader.join();
+        }
+    })
+}
+
+fn attach(
+    s: TcpStream,
+    port: Port,
+    clients: &Shared,
+    tx: &SyncSender<Input>,
+    hold: &Hold,
+    stop: &AtomicBool,
+) -> Result<(), ()> {
     let _ = s.set_nodelay(true);
     let Ok(w) = Writer::spawn(&s) else { return Ok(()) };
-    *clients.lock().unwrap().slot(port) = Some(w);
+    {
+        let mut clients = clients.lock().unwrap();
+        if stop.load(Ordering::SeqCst) {
+            w.close();
+            return Ok(());
+        }
+        *clients.slot(port) = Some(w);
+    }
     tx.send(Input::Connected).map_err(drop)?;
     match port {
         Port::Cmd => read_commands(s, tx),

@@ -1,5 +1,6 @@
 mod common;
 use common::Lab;
+use std::io::Write;
 use xara::station::{Modem, Options};
 use xara::tnc::Tnc;
 use xara_host::response::Response;
@@ -65,6 +66,14 @@ fn connect_seen_through_feed() {
     assert!(ea.iter().any(|e| matches!(e, Event::Trace(t) if t.starts_with("tx "))));
     assert!(!ea.iter().any(|e| matches!(e, Event::Trace(t) if t.starts_with(' '))));
     assert!(events(&f[1]).iter().any(|e| matches!(e, Event::Host(Response::Sn(_)))));
+
+    let payload = b"XARA telemetry byte counter";
+    a.data.write_all(payload).unwrap();
+    assert!(lab.run_until(40.0, |_| f[1].peek().received_bytes == payload.len() as u64));
+    assert_eq!(f[1].take().received_bytes, payload.len() as u64);
+    assert_eq!(f[1].take().received_bytes, payload.len() as u64);
+    let received = events(&f[1]);
+    assert!(received.iter().any(|e| matches!(e, Event::Received { bytes, .. } if *bytes > 0)));
 
     a.send("DISCONNECT");
     let gone = |v: &common::Lines| v.lock().unwrap().iter().any(|l| l == "DISCONNECTED");

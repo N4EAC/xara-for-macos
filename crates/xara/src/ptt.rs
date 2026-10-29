@@ -1,3 +1,8 @@
+#[cfg(target_os = "macos")]
+type Ioctl = libc::c_ulong;
+#[cfg(not(target_os = "macos"))]
+type Ioctl = libc::Ioctl;
+
 use std::cell::Cell;
 use std::fs::{File, OpenOptions};
 use std::io::{self, BufRead, BufReader, IsTerminal, Write};
@@ -95,7 +100,7 @@ impl Serial {
         Ok(s)
     }
 
-    fn modem(&self, req: libc::Ioctl, bits: libc::c_int) -> io::Result<()> {
+    fn modem(&self, req: Ioctl, bits: libc::c_int) -> io::Result<()> {
         if unsafe { libc::ioctl(self.f.as_raw_fd(), req, &bits) } != 0 {
             return Err(io::Error::last_os_error());
         }
@@ -136,6 +141,7 @@ pub fn cm108_report(gpio: u8, on: bool) -> [u8; 5] {
     [0, 0, if on { m } else { 0 }, m, 0]
 }
 
+#[cfg(target_os = "linux")]
 pub fn is_hidraw(path: &str) -> bool {
     use std::os::unix::fs::{FileTypeExt, MetadataExt};
     let Ok(m) = std::fs::metadata(path) else { return false };
@@ -147,8 +153,19 @@ pub fn is_hidraw(path: &str) -> bool {
         .is_ok_and(|l| l.file_name().is_some_and(|n| n == "hidraw"))
 }
 
+#[cfg(not(target_os = "linux"))]
+pub fn is_hidraw(_: &str) -> bool {
+    false
+}
+
 impl Cm108 {
     pub fn open(path: &str, gpio: u8) -> io::Result<Self> {
+        if !cfg!(target_os = "linux") {
+            return Err(io::Error::new(
+                io::ErrorKind::Unsupported,
+                "CM108 hidraw PTT is Linux-only; use serial RTS/DTR, rigctld, or VOX on macOS",
+            ));
+        }
         let f = OpenOptions::new().write(true).open(path)?;
         if !is_hidraw(path) {
             say!("warning: {path} is not a hidraw device; CM108 PTT may not work");

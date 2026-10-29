@@ -136,6 +136,7 @@ impl Station {
         match ev {
             Event::Ctrl(c) => {
                 let d = &c.det;
+                self.c.reports.extend(super::control_signal(d.code, false));
                 let digi = self.digi.active();
                 self.c.reports.push_back(Report::Trace(format!(
                     "rx c{} hits {} lead {} end {:.3} {}",
@@ -198,7 +199,12 @@ impl Station {
                     self.on_session_data(now, &t, t_end);
                 }
             }
-            Event::Tx(t) => self.on_session_data(now, &t, t_end),
+            Event::Tx(t) => {
+                if t.record == Record::Start {
+                    self.c.reports.push_back(Report::Signal("START"));
+                }
+                self.on_session_data(now, &t, t_end);
+            }
             Event::Frame(_) => {}
         }
         self.drain();
@@ -277,10 +283,14 @@ impl Station {
         let mut keyed = Vec::new();
         let (x, tail) = match t {
             fm::Tx::Ctrl { code, lead } => {
+                keyed.extend(super::control_signal(*code, false));
                 let cb = self.cb.as_ref().expect("codebook before the first control frame");
                 (frame_audio(cb, *code, *lead, d), 0)
             }
             fm::Tx::Data { record, frames, lead } => {
+                if *record == Record::Start {
+                    keyed.push(Report::Signal("START"));
+                }
                 let bw = if *record == Record::Connect { self.c.cfg.bw } else { self.c.session.bandwidth() };
                 if self.modm.bw != bw {
                     self.modm = Modulator::new(bw);

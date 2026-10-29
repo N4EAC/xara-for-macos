@@ -1,6 +1,7 @@
 use crate::writer::Writer;
 use std::io::{self, Read};
 use std::net::{SocketAddr, TcpListener, TcpStream};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, SyncSender, sync_channel};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -83,6 +84,8 @@ pub struct KissServer {
     pub input: Receiver<(u8, Vec<u8>)>,
     clients: Clients,
     pub addr: SocketAddr,
+    stop: Arc<AtomicBool>,
+    worker: Option<thread::JoinHandle<()>>,
 }
 
 impl KissServer {
@@ -90,9 +93,15 @@ impl KissServer {
         let l = TcpListener::bind((addr, port))?;
         let (tx, input) = sync_channel(INPUT_QUEUE);
         let clients: Clients = Arc::new(Mutex::new((0..MAX_CLIENTS).map(|_| None).collect()));
-        let s = Self { input, clients: clients.clone(), addr: l.local_addr()? };
-        thread::Builder::new().name("kiss-accept".into()).spawn(move || {
+        l.set_nonblocking(true)?;
+        let stop = Arc::<AtomicBool>::default();
+        let stopping = stop.clone();
+        let mut s = Self { input, clients: clients.clone(), addr: l.local_addr()?, stop, worker: None };
+        s.worker = Some(thread::Builder::new().name("kiss-accept".into()).spawn(move || {
             for id in 0u64..=u64::MAX {
+                if stopping.load(Ordering::SeqCst) {
+                    break;
+                }
                 let s = match l.accept() {
                     Ok((s, _)) => s,
                     Err(_) => {
@@ -100,6 +109,7 @@ impl KissServer {
                         continue;
                     }
                 };
+                let _ = s.set_nonblocking(false);
                 let _ = s.set_nodelay(true);
                 {
                     let mut g = clients.lock().unwrap();
@@ -112,8 +122,21 @@ impl KissServer {
                     drop_client(&clients, id);
                 }
             }
-        })?;
+        })?);
         Ok(s)
+    }
+
+    pub fn shutdown(&mut self) {
+        self.stop.store(true, Ordering::SeqCst);
+        if let Some(worker) = self.worker.take() {
+            let _ = worker.join();
+        }
+        for client in self.clients.lock().unwrap().iter_mut() {
+            if let Some((_, writer)) = client.take() {
+                writer.close();
+            }
+        }
+        while self.input.try_recv().is_ok() {}
     }
 
     pub fn has_clients(&self) -> bool {

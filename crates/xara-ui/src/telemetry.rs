@@ -86,12 +86,15 @@ pub struct Snapshot {
     pub bitrate: Option<Bitrate>,
     pub calls: Vec<String>,
     pub dropped: usize,
+    pub received_bytes: u64,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Event {
     Host(Response),
     Trace(String),
+    Signal(&'static str),
+    Received { bytes: usize, preview: String },
     UnableToConnect,
     TimedOut,
     Control { what: String, ok: bool },

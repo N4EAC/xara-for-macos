@@ -1,98 +1,31 @@
-name: Release
+name: macOS release build
 
 on:
-  push:
-    tags: ['v*']
+  workflow_dispatch:
 
 permissions:
   contents: read
 
-env:
-  CARGO_TERM_COLOR: always
-
 jobs:
-  bins:
-    runs-on: ${{ matrix.runner }}
-    container: ubuntu:22.04
-    env:
-      DEBIAN_FRONTEND: noninteractive
-    strategy:
-      matrix:
-        include:
-          - { target: x86_64-unknown-linux-gnu, runner: ubuntu-24.04 }
-          - { target: aarch64-unknown-linux-gnu, runner: ubuntu-24.04-arm }
-          - { target: armv7-unknown-linux-gnueabihf, runner: ubuntu-24.04, cross: armhf, cc: arm-linux-gnueabihf }
+  app:
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
-      - name: deps
-        shell: bash
-        run: |
-          pkgs=(ca-certificates curl gcc libc6-dev pkg-config xz-utils)
-          if [ -n '${{ matrix.cross }}' ]; then
-            dpkg --add-architecture '${{ matrix.cross }}'
-            sed -i 's/^deb /deb [arch=amd64] /' /etc/apt/sources.list
-            for s in jammy jammy-updates jammy-security; do
-              echo "deb [arch=${{ matrix.cross }}] http://ports.ubuntu.com/ubuntu-ports $s main universe"
-            done > /etc/apt/sources.list.d/ports.list
-            pkgs+=(gcc-${{ matrix.cc }} libc6-dev-${{ matrix.cross }}-cross
-                   libpulse-dev:${{ matrix.cross }} libasound2-dev:${{ matrix.cross }})
-            t=$(echo '${{ matrix.target }}' | tr a-z- A-Z_)
-            echo "CARGO_TARGET_${t}_LINKER=${{ matrix.cc }}-gcc" >> "$GITHUB_ENV"
-            echo "PKG_CONFIG_ALLOW_CROSS=1" >> "$GITHUB_ENV"
-            echo "PKG_CONFIG_LIBDIR=/usr/lib/${{ matrix.cc }}/pkgconfig:/usr/share/pkgconfig" >> "$GITHUB_ENV"
-          else
-            pkgs+=(libpulse-dev libasound2-dev)
-          fi
-          apt-get update
-          apt-get install -y --no-install-recommends "${pkgs[@]}"
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs |
-            sh -s -- -y --profile minimal --default-toolchain stable --target '${{ matrix.target }}'
-          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
-      - run: scripts/release_bins.sh '${{ matrix.target }}'
-      - uses: actions/upload-artifact@v4
-        with:
-          name: bins-${{ matrix.target }}
-          path: target/dist/*.tar.xz
-          if-no-files-found: error
-
-  source:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - name: tag matches version
-        run: |
-          ver=$(sed -n 's/^version = "\(.*\)"$/\1/p;T;q' Cargo.toml)
-          test "${GITHUB_REF_NAME#v}" = "$ver"
-      - run: cargo fetch --locked
-      - run: scripts/release_tarball.sh HEAD
-      - uses: actions/upload-artifact@v4
-        with:
-          name: source
-          path: target/dist/*.tar.xz
-          if-no-files-found: error
-
-  release:
-    needs: [bins, source]
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-      id-token: write
-      attestations: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          path: out
-          merge-multiple: true
-      - run: cd out && sha256sum -- *.tar.xz > SHA256SUMS
-      - uses: actions/attest-build-provenance@v2
-        with:
-          subject-path: out/*.tar.xz
-      - name: draft release
+      - name: Verify Apple Silicon runner
+        run: test "$(uname -m)" = arm64
+      - run: rustup toolchain install stable --profile minimal
+      - run: ./scripts/build_macos_ui.sh
         env:
-          GH_TOKEN: ${{ github.token }}
+          RUSTUP_TOOLCHAIN: stable
+      - name: Package
+        working-directory: target/macos
         run: |
-          ver=${GITHUB_REF_NAME#v}
-          awk -v h="## $ver" '$0 == h { on = 1; next } on && /^## / { exit } on' CHANGELOG.md > notes.md
-          gh release create "$GITHUB_REF_NAME" --draft --verify-tag \
-            --title "xara $ver" --notes-file notes.md out/*
+          ditto -c -k --sequesterRsrc --keepParent XARA.app XARA-macOS-arm64.zip
+          shasum -a 256 XARA-macOS-arm64.zip > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: XARA-macOS-arm64
+          path: |
+            target/macos/XARA-macOS-arm64.zip
+            target/macos/SHA256SUMS
+          if-no-files-found: error

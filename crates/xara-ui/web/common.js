@@ -100,7 +100,7 @@ function meter(id) {
       hold.at = now;
     }
     el.querySelector(".hold").style.left = `calc(${pct(hold.db)}% - 2px)`;
-    el.querySelector(".val").textContent = m.rms <= meterFloor ? "-" : `${m.rms.toFixed(1)} dB`;
+    el.querySelector(".val").textContent = m.rms <= meterFloor ? "-" : `${m.rms.toFixed(1)} dBFS`;
   };
 }
 
@@ -242,7 +242,7 @@ class Waterfall {
       band.style.display = "none";
     }
     const step = this.span > 4000 ? 1000 : 500;
-    g.font = "11px system-ui, sans-serif";
+    g.font = `10px ${css.getPropertyValue("--mono").trim()}`;
     g.fillStyle = css.getPropertyValue("--dim");
     g.strokeStyle = css.getPropertyValue("--dim");
     g.textBaseline = "top";
@@ -340,7 +340,7 @@ class LogView {
   }
 }
 
-function lineChart(c, points, now, span, lo, hi) {
+function lineChart(c, points, now, span, lo, hi, tick = 10) {
   const dpr = window.devicePixelRatio || 1;
   const w = c.clientWidth, h = c.clientHeight;
   if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) {
@@ -354,12 +354,12 @@ function lineChart(c, points, now, span, lo, hi) {
   const dim = css.getPropertyValue("--dim"), line = css.getPropertyValue("--line"), accent = css.getPropertyValue("--accent");
   lo = Math.min(lo, ...points.map((p) => Math.floor(p.v / 10) * 10));
   hi = Math.max(hi, ...points.map((p) => Math.ceil(p.v / 10) * 10));
-  const left = 30, bottom = h - 4;
+  g.font = `10px ${css.getPropertyValue("--mono").trim()}`;
+  const left = Math.max(30, Math.ceil(Math.max(g.measureText(String(lo)).width, g.measureText(String(hi)).width)) + 6), bottom = h - 4;
   const x = (ts) => left + (w - left - 4) * (1 - (now - ts) / span);
   const y = (v) => bottom - (bottom - 6) * (v - lo) / (hi - lo);
-  g.font = "11px system-ui, sans-serif";
   g.textBaseline = "middle";
-  for (let v = lo; v <= hi; v += 10) {
+  for (let v = lo; v <= hi; v += tick) {
     g.strokeStyle = line;
     g.beginPath();
     g.moveTo(left, y(v));

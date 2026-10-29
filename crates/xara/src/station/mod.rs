@@ -39,6 +39,7 @@ pub enum Report {
     Busy(bool),
     UnencryptedLink,
     Trace(String),
+    Signal(&'static str),
     Line(String),
     Kiss(Command, Vec<u8>),
 }
@@ -239,4 +240,21 @@ pub trait Modem {
             self.apply(l);
         }
     }
+}
+
+// HF and FM share the ACK family; their BREAK and START encodings differ.
+pub(crate) fn control_signal(code: u32, hf: bool) -> Option<Report> {
+    let name = match code {
+        1 | 5..=11 => "ACK",
+        2 => "NACK",
+        3 => "QRT",
+        12 | 13 => "REQ",
+        19 if hf => "NACK",
+        46 if hf => "QRT",
+        49 if hf => "BREAK",
+        4 if !hf => "BREAK",
+        51..=57 if hf => "START",
+        _ => return None,
+    };
+    Some(Report::Signal(name))
 }

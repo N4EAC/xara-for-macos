@@ -3,121 +3,130 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light dark">
-<title>xara</title>
+<meta name="color-scheme" content="dark">
+<title>XARA</title>
 <link rel="stylesheet" href="common.css">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header>
-  <div class="brand">xara <span id="mode" class="dim"></span></div>
-  <div id="calls" class="calls"></div>
-  <div id="conn" class="conn">connecting</div>
+<header class="toolbar">
+  <a class="brand" href="./" aria-label="XARA">XARA</a>
+  <span id="mode" class="mode-badge" aria-label="Modem mode">—</span>
+  <nav class="tabs" role="tablist" aria-label="Modem controls">
+    <button id="tab-modem" role="tab" aria-selected="true" aria-controls="panel-modem" tabindex="0">Modem</button>
+    <button id="tab-diagnostics" role="tab" aria-selected="false" aria-controls="panel-diagnostics" tabindex="-1">Diagnostics</button>
+    <button id="tab-setup" role="tab" aria-selected="false" aria-controls="panel-setup" tabindex="-1">Setup</button>
+  </nav>
+  <div id="conn" class="conn" role="status">connecting</div>
 </header>
 <main>
-  <section class="card link">
-    <div class="state-row">
-      <span id="state" class="state">-</span>
-      <span id="peer" class="peer"></span>
-    </div>
-    <div class="tiles">
-      <div class="tile"><label>Level</label><b id="level">-</b></div>
-      <div class="tile"><label>Bitrate</label><b id="bps">-</b><small id="dir"></small></div>
-      <div class="tile"><label>S/N (dB)</label><b id="sn">-</b></div>
-      <div class="tile"><label>AFC (Hz)</label><b id="afc">-</b></div>
-      <div class="tile"><label>Attempts</label><b id="tries">-</b></div>
-      <div class="tile"><label>buffer (bytes)</label><b id="buffer">-</b></div>
-    </div>
+<div id="panel-modem" role="tabpanel" aria-labelledby="tab-modem" class="dashboard">
+  <section class="card session" aria-label="Connection">
+    <div class="session-status"><span class="status-dot"></span><div><span class="eyebrow">LINK STATUS</span><div id="state" class="state idle">Awaiting telemetry</div></div></div>
+    <div><span class="eyebrow">LOCAL STATION</span><div id="calls" class="calls">—</div></div>
+    <div><span class="eyebrow">REMOTE STATION</span><div id="peer" class="peer">—</div></div>
+    <div><span class="eyebrow">RECEIVED THIS CONNECTION</span><div class="byte-value"><b id="received">—</b><span>bytes</span></div></div>
+  </section>
+  <section class="card throughput">
+    <div class="card-head"><h2>BPS</h2></div>
+    <div class="readout"><b id="bps">—</b><span id="dir">bits / second</span></div>
+    <canvas id="bps-chart" height="100" aria-label="Bitrate history over the last five minutes" role="img"></canvas>
+    <div class="chart-caption"><span>5 MIN AGO</span><span>NOW</span></div>
+    <div class="mini-stats"><span>Link level <b id="level">—</b></span><span>Frame level <b id="frame-level">—</b></span><span>Attempts <b id="tries">—</b></span><span>Buffer <b id="buffer">—</b></span></div>
   </section>
   <section class="card audio">
-    <div class="leds">
-      <span id="ptt" class="led ptt">PTT</span>
-      <span id="busy" class="led busy">BUSY</span>
-      <span id="clip" class="led clip">CLIP</span>
-    </div>
-    <div class="meter" id="rx">
-      <label>RX</label>
-      <div class="bar"><div class="fill"></div><div class="hold"></div></div>
-      <span class="val">-</span>
-    </div>
-    <div class="meter" id="tx">
-      <label>TX</label>
-      <div class="bar"><div class="fill"></div><div class="hold"></div></div>
-      <span class="val">-</span>
-    </div>
+    <div class="card-head"><h2>Audio · dBFS</h2><div class="leds auxiliary"><span id="ptt" class="led ptt">PTT</span><span id="busy" class="led busy">BUSY</span><span id="clip" class="led clip" aria-label="RX clipping inactive">RX CLIP</span><span id="tx-clip" class="led clip" aria-label="TX clipping inactive">TX CLIP</span></div></div>
+    <div class="audio-columns" aria-hidden="true"><span></span><span></span><span>RMS</span><span>Peak</span><span>Clip</span></div>
+    <div class="meter" id="rx"><label>IN</label><div class="bar"><div class="fill"></div><div class="hold"></div></div><span class="val">—</span><span id="rx-peak" class="peak-value" aria-label="RX peak dBFS">—</span><span id="rx-clips" class="clip-value" aria-label="RX clipped samples per update">—</span></div>
+    <div class="meter" id="tx"><label>OUT</label><div class="bar"><div class="fill"></div><div class="hold"></div></div><span class="val">—</span><span id="tx-peak" class="peak-value" aria-label="TX peak dBFS">—</span><span id="tx-clips" class="clip-value" aria-label="TX clipped samples per update">—</span></div>
     <div class="scale"></div>
+    <div class="audio-window-label">Peak and clipping / telemetry update</div>
     <div id="controls" class="controls" hidden>
-      <div class="drive">
-        <label for="drive">Drive</label>
-        <input type="range" id="drive" max="0" step="1">
-        <span id="drive-val" class="val">-</span>
-      </div>
-      <div class="buttons">
-        <button id="tune" class="btn tune" type="button">Tune</button>
-        <button id="abort" class="btn danger" type="button">Abort</button>
-      </div>
+      <div class="drive"><label for="drive">TX drive</label><input type="range" id="drive" min="-30" max="0" step="1"><span id="drive-val" class="val">—</span></div>
+      <div class="buttons"><button id="tune" class="btn tune" type="button">Tune</button><button id="abort" class="btn danger" type="button">Abort</button></div>
     </div>
-    <p id="locked" class="hint" hidden>Controls need the link xara prints at startup (/?token=...).</p>
+    <p id="locked" class="hint" hidden>Open the authenticated URL printed by XARA to enable controls.</p>
   </section>
+  <section class="card quality">
+    <div class="card-head"><h2>Signal quality</h2><span class="live-label">RX</span></div>
+    <div class="quality-row"><span>S/N</span><div><b id="sn">—</b><small>dB</small></div></div>
+    <div id="sn-meter" class="quality-meter" role="meter" aria-label="Signal to noise" aria-valuemin="-10" aria-valuemax="30"><i></i></div>
+    <div class="meter-labels"><span>−10</span><span>10</span><span>30 dB</span></div>
+    <div class="quality-row afc-row"><span>AFC</span><div><b id="afc">—</b><small>Hz</small></div></div>
+    <div id="afc-meter" class="afc-meter" role="meter" aria-label="Automatic frequency correction" aria-valuemin="-100" aria-valuemax="100"><i></i></div>
+    <div class="meter-labels"><span>−100</span><span>0</span><span>+100 Hz</span></div>
+  </section>
+  <section class="card indicators" aria-label="Protocol activity"><span class="eyebrow">ACTIVITY</span><div class="protocol-leds">
+    <span id="led-data" class="signal-led" role="status" aria-label="DATA inactive"><i></i>DATA</span>
+    <span id="led-ack" class="signal-led" role="status" aria-label="ACK inactive"><i></i>ACK</span>
+    <span id="led-nack" class="signal-led amber" role="status" aria-label="NACK inactive"><i></i>NACK</span>
+    <span id="led-req" class="signal-led" role="status" aria-label="REQ inactive"><i></i>REQ</span>
+    <span id="led-qrt" class="signal-led amber" role="status" aria-label="QRT inactive"><i></i>QRT</span>
+    <span id="led-break" class="signal-led amber" role="status" aria-label="BREAK inactive"><i></i>BREAK</span>
+    <span id="led-start" class="signal-led" role="status" aria-label="START inactive"><i></i>START</span>
+    <span id="led-rx" class="signal-led" role="status" aria-label="RX inactive"><i></i>RX</span>
+    <span id="led-tx" class="signal-led amber" role="status" aria-label="TX inactive"><i></i>TX</span>
+  </div></section>
+  <div class="telemetry-line" aria-label="Telemetry health"><span>DSP time <b id="dsp-time">—</b> s</span><span>Telemetry drops <b id="telemetry-drops">—</b></span></div>
   <section class="card wf">
-    <div class="card-head">
-      <h2>Waterfall</h2>
-      <span id="wf-cursor" class="cursor"></span>
-      <label class="toggle"><input type="checkbox" id="wf-on" checked> show</label>
-    </div>
-    <div class="wf-wrap" id="wf-wrap">
-      <canvas id="wf" width="512" height="200"></canvas>
-      <div id="wf-band" class="band"></div>
-    </div>
-    <canvas id="wf-axis" height="22"></canvas>
+    <div class="card-head"><h2>Waterfall</h2><span id="wf-cursor" class="cursor"></span><label class="toggle"><input type="checkbox" id="wf-on" checked> Live spectrum</label></div>
+    <div class="wf-wrap" id="wf-wrap"><canvas id="wf" width="512" height="200" aria-label="Radio audio frequency waterfall" role="img"></canvas><div id="wf-band" class="band"></div><span id="wf-empty">Waiting for radio audio</span></div>
+    <canvas id="wf-axis" height="26" aria-label="Frequency in Hz" role="img"></canvas>
+    <div class="chart-caption"><span>Passband <b id="passband-low">—</b>–<b id="passband-high">—</b> Hz</span><span class="spectrum-key">LOW <i></i> HIGH</span></div>
   </section>
-  <section class="card chart">
-    <h2>S/N history <span class="dim">last 5 min</span></h2>
-    <canvas id="sn-chart" height="160"></canvas>
-  </section>
+  <section class="card chart"><div class="card-head"><h2>S/N history</h2><span class="live-label">5 MIN</span></div><canvas id="sn-chart" height="200" aria-label="Signal to noise history over the last five minutes" role="img"></canvas><div class="chart-caption"><span>5 MIN AGO</span><span>NOW</span></div></section>
   <section class="card log">
-    <div class="log-head">
-      <h2>Log</h2>
-      <select id="verbosity" aria-label="Log detail">
-        <option value="0">Events</option>
-        <option value="1">Host protocol</option>
-        <option value="2">Modem trace</option>
-      </select>
-    </div>
-    <ol id="log"></ol>
+    <div class="log-head"><div><h2>Data monitor</h2></div><div class="monitor-actions"><select id="verbosity" aria-label="Monitor detail"><option value="0">Events + data</option><option value="1">Host protocol</option><option value="2">Modem trace</option></select><button id="log-clear" class="btn" type="button">Clear</button><button id="log-export" class="btn" type="button">Export</button></div></div>
+    <ol id="log" aria-label="Data monitor entries"></ol><div id="log-empty" class="empty-monitor">No entries</div>
   </section>
-  <section class="card settings" id="settings" hidden>
-    <div class="card-head">
-      <h2>Settings</h2>
-      <span id="set-path" class="cursor"></span>
-    </div>
+</div>
+<div id="panel-diagnostics" role="tabpanel" aria-labelledby="tab-diagnostics" class="diagnostics-grid" hidden>
+  <section class="card">
+    <div class="card-head"><h2>Telemetry</h2></div>
+    <dl class="diagnostic-list">
+      <div><dt>DSP time</dt><dd><span id="diag-time">—</span> s</dd></div>
+      <div><dt>Dropped events</dt><dd id="diag-drops">—</dd></div>
+      <div><dt>Modem version</dt><dd id="diag-version">—</dd></div>
+      <div><dt>Protocol version</dt><dd id="diag-protocol">—</dd></div>
+      <div><dt>Replayed events</dt><dd id="diag-replay">—</dd></div>
+      <div><dt>Audio backend</dt><dd id="diag-backend">—</dd></div>
+      <div><dt>Meter floor</dt><dd><span id="diag-meter-floor">—</span> dBFS</dd></div>
+      <div><dt>Minimum TX drive</dt><dd><span id="diag-drive-min">—</span> dB</dd></div>
+      <div><dt>Tune limit</dt><dd><span id="diag-tune-limit">—</span> s</dd></div>
+    </dl>
+  </section>
+  <section class="card">
+    <div class="card-head"><h2>Waterfall</h2></div>
+    <dl class="diagnostic-list">
+      <div><dt>Passband low</dt><dd><span id="diag-passband-low">—</span> Hz</dd></div>
+      <div><dt>Passband high</dt><dd><span id="diag-passband-high">—</span> Hz</dd></div>
+      <div><dt>Frequency span</dt><dd><span id="diag-span">—</span> Hz</dd></div>
+      <div><dt>Bins</dt><dd id="diag-bins">—</dd></div>
+      <div><dt>Nominal row rate</dt><dd><span id="diag-rate">—</span> rows/s</dd></div>
+      <div><dt>Floor</dt><dd><span id="diag-wf-floor">—</span> dBFS</dd></div>
+      <div><dt>Quantization step</dt><dd><span id="diag-step">—</span> dB</dd></div>
+    </dl>
+  </section>
+</div>
+<div id="panel-setup" role="tabpanel" aria-labelledby="tab-setup" hidden>
+  <section class="card settings" id="settings">
+    <div class="card-head"><h2>Setup</h2><span id="set-path" class="cursor"></span></div>
+    <p id="set-access" class="hint">Connect with the authenticated modem URL and enable --ui-control to load settings.</p>
     <p id="set-error" class="banner" hidden></p>
-    <form id="set-form" class="set-grid" autocomplete="off">
-      <label>Callsign <input name="call" spellcheck="false"></label>
-      <label id="set-hf">Bandwidth
-        <select name="hf"><option value="">command line</option><option>500</option><option>2300</option><option>2750</option></select>
-      </label>
-      <label id="set-fm" hidden>FM mode
-        <select name="fm"><option value="">command line</option><option>narrow</option><option>wide</option></select>
-      </label>
-      <label>Capture device <input name="capture" list="dev-capture" spellcheck="false"></label>
-      <label>Playback device <input name="playback" list="dev-playback" spellcheck="false"></label>
-      <label>PTT lead (ms) <input name="ptt-lead-ms" type="number" min="0" max="1000" step="10"></label>
-      <label>PTT tail (ms) <input name="ptt-tail-ms" type="number" min="0" max="1000" step="10"></label>
-    </form>
-    <datalist id="dev-capture"></datalist>
-    <datalist id="dev-playback"></datalist>
-    <div class="buttons">
-      <button id="set-save" class="btn" type="button">Save and restart</button>
-      <button id="set-reset" class="btn" type="button">Use command line</button>
-      <button id="set-devices" class="btn" type="button">Refresh devices</button>
-    </div>
-    <p id="set-msg" class="hint"></p>
-    <p class="hint">Empty fields use the command line (shown greyed). xara restarts only while idle, which takes a few
-      seconds; if saved settings fail to start, it falls back to the command line and says so here.</p>
+    <form id="set-form" class="set-grid" autocomplete="off"><fieldset id="set-fields" disabled>
+      <label>Station callsign<input name="call" spellcheck="false" autocapitalize="characters" placeholder="YOURCALL"></label>
+      <label id="set-hf">HF bandwidth<select name="hf"><option value="">command line</option><option>500</option><option>2300</option><option>2750</option></select></label>
+      <label id="set-fm" hidden>FM mode<select name="fm"><option value="">command line</option><option>narrow</option><option>wide</option></select></label>
+      <label>Radio audio input<input name="capture" list="dev-capture" spellcheck="false" placeholder="Capture device on modem host"></label>
+      <label>Radio audio output<input name="playback" list="dev-playback" spellcheck="false" placeholder="Playback device on modem host"></label>
+      <label>PTT lead · ms<input name="ptt-lead-ms" type="number" min="0" max="1000" step="10"></label>
+      <label>PTT tail · ms<input name="ptt-tail-ms" type="number" min="0" max="1000" step="10"></label>
+    </fieldset></form>
+    <datalist id="dev-capture"></datalist><datalist id="dev-playback"></datalist>
+    <div class="settings-bottom"><p class="hint">Empty fields inherit command-line settings. Changes restart the modem while idle.<br>Audio devices belong to the computer running the modem.</p><div class="buttons"><button id="set-devices" class="btn" type="button" disabled>Refresh devices</button><button id="set-reset" class="btn" type="button" disabled>Use command line</button><button id="set-save" class="btn primary" type="button" disabled>Save and restart</button></div></div>
+    <p id="set-msg" class="hint" role="status"></p>
   </section>
+</div>
 </main>
-<script src="common.js"></script>
-<script src="app.js"></script>
-</body>
-</html>
+<script src="common.js"></script><script src="app.js"></script>
+</body></html>

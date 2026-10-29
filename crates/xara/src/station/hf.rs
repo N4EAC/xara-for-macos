@@ -221,6 +221,7 @@ impl Station {
         match ev {
             Event::Ctrl(c) => {
                 let d = c.det;
+                self.c.reports.extend(super::control_signal(d.code, true));
                 self.un.reply_fmt = self.un.reply.update(d.snr_norm, d.hits, d.fmt).1;
                 if !self.un.bc.idle() {
                     return;
@@ -286,6 +287,7 @@ impl Station {
         let mut keyed = Vec::new();
         let (x, g) = match t {
             Tx::Ctrl { code, fmt, extra } => {
+                keyed.extend(super::control_signal(*code, true));
                 if *code == BREAK {
                     let r = self.tx_rnd.rand_int(2);
                     self.c.session.set_break_draw(r);

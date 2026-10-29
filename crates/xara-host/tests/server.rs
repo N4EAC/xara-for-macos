@@ -61,8 +61,18 @@ fn a_second_client_is_refused_and_the_port_stays_ours() {
     use std::io::{Read, Write};
     let (h, mut first) = command_host();
     for _ in 0..3 {
-        let e = TcpStream::connect(h.cmd_addr).map(drop).unwrap_err();
-        assert_eq!(e.kind(), std::io::ErrorKind::ConnectionRefused);
+        #[cfg(not(target_os = "macos"))]
+        {
+            let e = TcpStream::connect(h.cmd_addr).map(drop).unwrap_err();
+            assert_eq!(e.kind(), std::io::ErrorKind::ConnectionRefused);
+        }
+        #[cfg(target_os = "macos")]
+        {
+            let mut extra = TcpStream::connect(h.cmd_addr).unwrap();
+            extra.set_read_timeout(Some(Duration::from_secs(1))).unwrap();
+            let result = extra.read(&mut [0]);
+            assert!(matches!(result, Ok(0)) || result.is_err_and(|e| e.kind() == std::io::ErrorKind::ConnectionReset));
+        }
     }
     first.write_all(b"BW500\r").unwrap();
     assert!(matches!(h.input.recv_timeout(Duration::from_secs(1)), Ok(Input::Command(Command::Bw(_)))));
@@ -188,4 +198,21 @@ fn a_held_data_port_stops_reading() {
     take_data(&h, &mut got, sent);
     assert_eq!(got.len(), sent);
     assert!(got == pattern(0, sent), "data reordered or lost");
+}
+
+#[test]
+fn explicit_shutdown_releases_host_and_kiss_ports_with_connected_clients() {
+    let mut host = Host::bind("127.0.0.1", 0).unwrap();
+    let command = host.cmd_addr;
+    let data = host.data_addr;
+    let _client = TcpStream::connect(command).unwrap();
+    assert!(matches!(host.input.recv_timeout(Duration::from_secs(1)), Ok(Input::Connected)));
+    host.shutdown();
+    let _command = std::net::TcpListener::bind(command).unwrap();
+    let _data = std::net::TcpListener::bind(data).unwrap();
+    let mut kiss = KissServer::bind("127.0.0.1", 0).unwrap();
+    let addr = kiss.addr;
+    let _client = TcpStream::connect(addr).unwrap();
+    kiss.shutdown();
+    let _kiss = std::net::TcpListener::bind(addr).unwrap();
 }

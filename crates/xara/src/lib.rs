@@ -15,3 +15,6 @@ pub mod wav;
 pub const DEFAULT_ADDR: &str = "127.0.0.1";
 pub const HF_SPAN_HZ: u32 = 3000;
 pub const FM_SPAN_HZ: u32 = 6000;
+
+#[cfg(all(target_os = "macos", feature = "macos-app"))]
+pub mod embedded;

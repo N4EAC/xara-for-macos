@@ -1,141 +1,84 @@
-# xara
+# Xara for macOS
 
-a VARA-compatible modem for linux. tested against VARA HF 4.9.0 and FM 4.4.0.
+A self-contained macOS application for the XARA VARA-compatible HF/FM modem. The Rust modem engine runs inside the app, with native Core Audio input/output, an instrument panel, and an optional local web interface. No separate modem installation is needed.
 
-## minimum config
+Based on **[XARA by x0rro](https://github.com/x0rro/xara)**. The original project provides the modem, DSP, protocol implementation, and host interfaces. This repository provides the macOS application and its integrated interface. It is an independent distribution; the original developer's MIT license and Git history are retained.
 
-set your call sign, HF bandwidth or FM mode, audio, and (if using a radio)
-radio and ptt. do this with command line flags or a config file.
+[Download the latest release](https://github.com/N4EAC/xara-for-macos/releases/latest) · [Original repository](https://github.com/x0rro/xara) · [Command-line guide](docs/cli.md)
 
-    xara --call YOURCALL --hf 2300 --audio alsa \
-         --capture plughw:CARD=Device,DEV=0 \
-         --playback plughw:CARD=Device,DEV=0
+![XARA macOS instrument panel](docs/images/xara-main.png)
 
-to transmit, add `--radio` and `--ptt` flags.
+## Compatibility
 
-## other features
+| Item | Release build |
+| --- | --- |
+| Processor | Apple Silicon (arm64; M1 or newer) |
+| Operating system | macOS 12 Monterey or newer |
+| Intel Macs | Not supported by the downloadable ZIP; it is not a Universal build |
+| Modem version | XARA 0.1.1 |
+| Audio | Native Core Audio; 48 kHz, signed 16-bit mono PCM internally |
+| Signing | Ad-hoc signed; not Developer ID signed or notarized |
 
- - web UI for configuration and management
- - all the usual TCP ports (works with your favorite software)
- - digipeating (enable by call with `--digi N1CALL`)
- - `xara-monitor`: passive VARA HF monitor (with web UI)
+Rust and Xcode are only needed to build from source. The downloadable app contains its modem engine and UI. The minimum OS is the deployment target; operation has not been tested on every macOS release or radio interface. macOS may require approval to open the unnotarized app.
 
-## building
+## Setup
 
-install deps:
+1. Download **XARA-macOS-arm64.zip** from [Releases](https://github.com/N4EAC/xara-for-macos/releases/latest), unzip it, and move **XARA.app** to Applications.
+2. Open XARA and grant microphone access when prompted. This permission also covers audio received through a USB radio interface.
+3. Open **Modem → Station & Radio…** (⌘,) and enter your callsign, select HF bandwidth or FM mode, and choose your radio's audio input and output. The **Setup** tab contains station, audio, and timing settings.
+4. Start in receive-only mode. To transmit, explicitly select the radio audio devices and configure serial RTS/DTR, Hamlib rigctld, or VOX PTT. Check audio levels and PTT timing with your radio before an on-air session. CM108 HID PTT is Linux-only.
+5. Connect your radio software to `127.0.0.1`: command port **8300**, data port **8301**, or KISS TCP **8100**. Ports can be changed in Station & Radio if already in use.
 
-    apt install libpulse-dev libasound2-dev
+Save and restart applies engine settings while idle. Settings are stored in `~/Library/Application Support/XARA` and macOS app preferences.
 
-then install from here:
+**Modem → Open in Browser** (⌘⇧B) opens the same interface in your default browser. It connects to the app's running modem using an authenticated loopback address; keep the app open. **Modem → Fit to Panels** (⌘0) fits the window to the selected tab.
 
-    cargo install --locked --git https://github.com/x0rro/xara xara
+## Instruments and interfaces
 
-alternatively for a local setup you can do:
+- BPS history; audio input/output RMS and peak levels in dBFS; clipped-sample counts; AFC and S/N meters.
+- DATA, ACK, NACK, REQ, QRT, BREAK, START, RX, and TX indicators; local and connected callsigns; connection state and received-byte total.
+- Link/frame levels, retry and buffer information, passband edges, processed audio time, telemetry drops, waterfall, and received-data monitor.
+- Setup and Diagnostics tabs, including reported modem/protocol versions, audio backend, meter limits, and waterfall parameters.
+- HF bandwidths of 500, 2300, and 2750 Hz; FM narrow and wide modes; local command/data and KISS interfaces.
 
-    cargo build --release
-    cargo test
+The received-byte total accumulates decoded payload bytes for each radio connection and resets at the next connection. Clearing the data monitor does not reset that counter. Its text preview shows up to 256 bytes per received payload. Protocol event LEDs remain visible briefly for readability; TX follows PTT. The Live indicator reports the UI telemetry connection, not a radio connection. Unavailable or stale instrument readings are cleared.
 
-## options
+![XARA diagnostics](docs/images/xara-diagnostics.png)
 
-    --config FILE           read key = value options from FILE
+## Build from source
 
-    --call CALL             your callsign (required)
+Install [Rust](https://www.rust-lang.org/tools/install) (stable) and Xcode Command Line Tools (`xcode-select --install`), then:
 
-    --audio pulse|alsa      pulse vs alsa audio path
-    --capture SOURCE        audio source
-    --playback SINK         audio sink
+```sh
+git clone https://github.com/N4EAC/xara-for-macos.git
+cd xara-for-macos
+./scripts/build_macos_ui.sh
+open target/macos/XARA.app
+```
 
-    --hf 500|2300|2750      HF mode, bandwidth setting
-    --fm narrow|wide        FM mode, narrow vs wide
+The script statically links the Rust engine into an AppKit/WKWebView application, builds for the Mac's current architecture with a macOS 12 deployment target, and signs the bundle locally. The published ZIP is built on Apple Silicon. An Intel source build is not provided or validated by this release.
 
-    --radio                 enable radio mode
-    --drive-db D            TX drive (<= 0 dB, default -5)
-    --ptt [see section]     PTT has a lot of options
+To package the app:
 
-    --ui-port N             serve web UI on port N (default off)
-    --ui-addr A             webui listen address (default 127.0.0.1)
-    --ui-host NAME          accept as HTTP Host for UI (repeatable)
-    --ui-token T            UI token (default: random)
-    --ui-control            DANGER: remote token-holders can key radio
-    --state-dir DIR         web UI settings storage (default: set by systemd)
+```sh
+ditto -c -k --sequesterRsrc --keepParent \
+  target/macos/XARA.app target/macos/XARA-macOS-arm64.zip
+```
 
-    --addr A                KISS/command address (default: 127.0.0.1)
-    --port N                command port (< 65535, default: 8300)
-    --kiss-port N|off       KISS TCP port (default: 8100)
-    --persistence P         KISS p-persistence
+Use that asset name only for an arm64 build. Higher registered speeds require a source build with the upstream `registered` feature and a registered copy of VARA; the standard app build does not enable it. See the [CLI guide](docs/cli.md) for standalone builds and protocol options.
 
-    --registered            enable registered speeds (must set build flag)
+## Validation
 
-    --digi CALL             FM digipeat for CALL (default: off)
-    --record PATH           record rx, tx and PTT to FLAC (or WAV if .wav)
-    --quiet                 no output
-    --version and --help    guess
+```sh
+cargo test --locked --release -p xara-ui -p xara-host
+cargo test --locked --release -p xara --no-default-features --features macos-app --lib embedded::tests
+cargo test --locked --release -p xara --no-default-features --features macos-app --test telemetry
+```
 
-## PTT settings
+Embedded tests exercise the DSP loop with simulated PCM, authenticated UI access, settings, restart, and shutdown. The browser smoke test is `scripts/test_modem_ui.cjs` and requires Playwright/Chromium with the web directory served on port 8765. Automated tests do not substitute for validation with your radio hardware.
 
-we support the following PTT methods:
+## Credits and license
 
- - rts and dtr on a serial port
- - cm108/cm119 HID GPIO
- - hamlib rigctld CAT
- - vox (not recommended)
+Original XARA: **[x0rro/xara](https://github.com/x0rro/xara)** by **[x0rro](https://github.com/x0rro)**, based here on commit [`2e96fcd`](https://github.com/x0rro/xara/commit/2e96fcd1563c765a0f5731dae9cc9465c4b86ac6) (0.1.1). Upstream reports compatibility testing against VARA HF 4.9.0 and FM 4.4.0. This macOS distribution is not affiliated with the VARA developer.
 
-you can adjust the following PTT settings as well:
-
- - PTT lead time
- - PTT tail time
- - max PTT
-
-summary of settings:
-
-    --ptt vox                   use VOX (just don't bother)
-    --ptt rts:DEV               key serial port on rts, hold dtr low
-    --ptt dtr:DEV               key serial port on dtr, hold rts low
-    --ptt cm108:DEV[:GPIO]      cm108/cm119 HID GPIO (default GPIO: 3)
-    --ptt rigctld[:HOST:PORT]   hamlib rigctld CAT on HOST:PORT
-
-    --ptt-lead-ms N             PTT held for N ms before xmit (default: 0)
-    --ptt-tail-ms N             PTT held for N ms after xmit (default: 100)
-    --ptt-max-s N               release PTT after N sec max (1-120, default: 30)
-
-## xara-monitor
-
-`xara-monitor` listens to VARA HF traffic between other stations and never
-transmits. it is considerably more demanding than `xara` and probably won't run
-on a pi.
-
-    xara-monitor --audio alsa --capture plughw:CARD=Device,DEV=0
-
-options:
-
-    --wav FILE              load from a wav file
-    --stdin RATE            s16le mono at RATE Hz
-
-    --audio pulse|alsa      pulse or alsa audio path
-    --capture SOURCE        audio source
-
-    --hf 500|2300|2750      HF bandwidth (default 2300)
-
-    --call CALL             known call (repeatable)
-    --calls FILE            list of known calls, one per line
-    --no-blind              only attempt to resolve known calls
-
-    --ui-port N             read-only web UI on port N (default: off)
-    --ui-addr ADDR          web UI listen addr (default: 127.0.0.1)
-    --ui-host NAME          accept as HTTP Host for UI (repeatable)
-
-    --key-idle MIN          max target idle time (default: 30, 0 disables)
-    --dump                  dump entire payloads
-    --verbose               report unconfirmed blind detections
-    --json                  print newline-delimited JSON records
-    --version and --help    guess
-
-## registered mode
-
-compile with the `registered` feature for higher speeds if you have a
-registered copy of VARA, then run with `xara --registered ...`.
-
-## copyright
-
-copyright (c) 2026 x0rro
-released under MIT license, see LICENSE
+Source is available under the [MIT license](LICENSE). Copyright © 2026 x0rro; original notices are preserved.
