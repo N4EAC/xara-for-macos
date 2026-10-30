@@ -172,7 +172,7 @@ pub fn store(dir: &Path, kv: &Pairs) -> io::Result<()> {
         Err(e) if e.kind() != io::ErrorKind::NotFound => return Err(e),
         _ => {}
     }
-    let mut f = std::fs::OpenOptions::new().write(true).create_new(true).mode(0o644).open(&tmp)?;
+    let mut f = std::fs::OpenOptions::new().write(true).create_new(true).mode(0o600).open(&tmp)?;
     f.write_all(b"# written by xara; keys are xara(1) options without the leading --\n")?;
     f.write_all(render(kv).as_bytes())?;
     f.sync_all()?;
@@ -257,6 +257,8 @@ mod tests {
         assert_eq!(load(&dir).unwrap(), Pairs::new());
         s.save(&kv(&[("call", "N1CALL")])).unwrap();
         assert_eq!(load(&dir).unwrap(), kv(&[("call", "N1CALL"), ("drive-db", "-12")]));
+        use std::os::unix::fs::PermissionsExt;
+        assert_eq!(std::fs::metadata(dir.join(FILE)).unwrap().permissions().mode() & 0o777, 0o600);
         s.reset().unwrap();
         assert_eq!(load(&dir).unwrap(), kv(&[("drive-db", "-12")]));
         let victim = dir.join("victim");

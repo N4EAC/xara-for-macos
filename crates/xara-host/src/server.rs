@@ -74,6 +74,20 @@ pub struct Host {
 }
 
 impl Host {
+    /// In-process operation without opening command or data sockets.
+    pub fn disabled() -> Self {
+        let (_, input) = sync_channel(INPUT_QUEUE);
+        Self {
+            input,
+            clients: Shared::default(),
+            hold: Arc::default(),
+            stop: Arc::default(),
+            workers: Vec::new(),
+            cmd_addr: SocketAddr::from(([127, 0, 0, 1], 0)),
+            data_addr: SocketAddr::from(([127, 0, 0, 1], 0)),
+        }
+    }
+
     pub fn bind(addr: &str, port: u16) -> io::Result<Self> {
         let cl = bind_fixed(addr, port)?;
         let data_port = match port {

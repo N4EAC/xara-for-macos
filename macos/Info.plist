@@ -7,11 +7,11 @@
 <key>CFBundleName</key><string>XARA</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleShortVersionString</key><string>0.1.1</string>
-<key>CFBundleVersion</key><string>1</string>
+<key>CFBundleVersion</key><string>2</string>
 <key>LSMinimumSystemVersion</key><string>12.0</string>
 <key>NSHighResolutionCapable</key><true/>
 <key>NSPrincipalClass</key><string>NSApplication</string>
-<key>NSAppTransportSecurity</key><dict><key>NSAllowsArbitraryLoadsInWebContent</key><true/></dict>
+<key>NSAppTransportSecurity</key><dict><key>NSAllowsLocalNetworking</key><true/></dict>
 <key>NSMicrophoneUsageDescription</key><string>XARA receives modem signals from your selected radio audio interface.</string>
 <key>NSLocalNetworkUsageDescription</key><string>XARA exposes local command and data ports to radio software and can control your rig through rigctld.</string>
 </dict></plist>

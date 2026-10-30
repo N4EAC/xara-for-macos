@@ -534,3 +534,44 @@ fn explicit_shutdown_releases_the_ui_port() {
     ui.shutdown();
     let _listener = std::net::TcpListener::bind(address).unwrap();
 }
+
+#[test]
+fn private_workspace_requires_auth_for_all_telemetry_and_rejects_rebinding() {
+    let (t, addr) = start_with(Access { private: true, ..controlled() });
+    for path in ["/ws", "/stream"] {
+        for extra in [String::new(), cookie(addr, "wrong-token")] {
+            let (status, body) = get(addr, &format!("GET {path} HTTP/1.1{extra}"));
+            assert_eq!(status, "HTTP/1.1 403 Forbidden");
+            assert_eq!(body, "authenticated UI access required\n");
+        }
+    }
+    let auth = cookie(addr, TOKEN);
+    let (mut s, head) = upgrade(addr, &auth);
+    assert!(head.starts_with("HTTP/1.1 101"));
+    assert_eq!(message(&mut s)["control"].as_bool(), Some(true));
+    t.update(|status| status.link.state = "Private test state".into());
+    assert_eq!(until(&mut s, |m| m["t"] == "status")["state"].as_str(), Some("Private test state"));
+    let mut stream = open(addr, &format!("GET /stream HTTP/1.1{auth}"));
+    let head = head_of(&mut stream);
+    assert!(head.starts_with("HTTP/1.1 200"));
+    assert!(head.contains("Referrer-Policy: no-referrer\r\n"));
+    let mut line = String::new();
+    BufReader::new(stream).read_line(&mut line).unwrap();
+    assert!(line.contains("hello"));
+    for host in ["localhost".into(), format!("127.0.0.2:{}", addr.port()), format!("evil.local:{}", addr.port())] {
+        assert_eq!(get(addr, &format!("GET /stream HTTP/1.1\r\nHost: {host}{auth}")).0, "HTTP/1.1 403 Forbidden");
+    }
+    let mut page = open(addr, "GET / HTTP/1.1");
+    assert!(head_of(&mut page).contains("connect-src 'self';"));
+}
+
+#[test]
+fn private_workspace_cannot_start_without_a_valid_enabled_token() {
+    for access in [
+        Access { private: true, ..Access::default() },
+        Access { private: true, control: true, token: Some("bad".into()), ..Access::default() },
+    ] {
+        let (_, feed) = channel(1);
+        assert!(UiServer::bind("127.0.0.1", 0, feed, INFO, access).is_err());
+    }
+}

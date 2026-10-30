@@ -1,4 +1,5 @@
 import AppKit
+import Darwin
 import AVFoundation
 import WebKit
 
@@ -11,12 +12,14 @@ struct StationConfiguration: Codable {
     var pttAddress = ""
     var commandPort = "8300"
     var kissPort = "8100"
+    // Optional so older saved configurations decode with external ports disabled.
+    var externalPorts: Bool?
 
     var text: String {
         let modeLine = mode.hasPrefix("hf") ? "hf=\(mode.dropFirst(2))" : "fm=\(mode.dropFirst(2))"
         var method = ptt
         if ["rts", "dtr", "rigctld"].contains(ptt) { method += ":" + pttAddress }
-        return "call=\(call)\n\(modeLine)\ncapture=\(input)\nplayback=\(output)\nptt=\(method)\nport=\(commandPort)\nkiss-port=\(kissPort)"
+        return "call=\(call)\n\(modeLine)\ncapture=\(input)\nplayback=\(output)\nptt=\(method)\nhost-ports=\(externalPorts == true ? "on" : "off")\nport=\(commandPort)\nkiss-port=\(kissPort)"
     }
 }
 
@@ -110,8 +113,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         if let fm = saved["fm"] { current.mode = "fm" + fm }
         let dialog = NSAlert()
         dialog.messageText = "Station & Radio"
-        let form = NSView(frame: NSRect(x: 0, y: 0, width: 520, height: 395))
-        var y: CGFloat = 366
+        let form = NSView(frame: NSRect(x: 0, y: 0, width: 520, height: 490))
+        var y: CGFloat = 461
         func add(_ title: String, _ control: NSControl) {
             let label = NSTextField(labelWithString: title)
             label.frame = NSRect(x: 0, y: y + 4, width: 140, height: 20)
@@ -135,11 +138,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         let methods = [("off", "Receive only · transmit disabled"), ("rts", "Serial RTS"), ("dtr", "Serial DTR"), ("rigctld", "Hamlib rigctld"), ("vox", "VOX")]
         ptt.addItems(withTitles: methods.map { $0.1 }); ptt.selectItem(at: methods.firstIndex { $0.0 == current.ptt } ?? 0); add("PTT method", ptt)
         let address = NSTextField(string: current.pttAddress); address.placeholderString = "/dev/cu.usbserial… or 127.0.0.1:4532"; add("PTT device / host", address)
+        let ports = NSButton(checkboxWithTitle: "Enable command/data and KISS ports", target: nil, action: nil)
+        ports.state = current.externalPorts == true ? .on : .off
+        add("External software", ports)
         let port = NSTextField(string: current.commandPort); add("Command port", port)
         let kiss = NSTextField(string: current.kissPort); kiss.placeholderString = "8100 or off"; add("KISS port", kiss)
-        let note = NSTextField(wrappingLabelWithString: "Data port = command port + 1")
+        let note = NSTextField(wrappingLabelWithString: "Data port = command port + 1. Ports are local and unauthenticated; enable only for trusted radio software.\nSaved locally: station, audio, PTT, and port settings. Received data stays in memory unless exported.")
         note.font = .monospacedSystemFont(ofSize: 11, weight: .regular); note.textColor = .secondaryLabelColor
-        note.frame = NSRect(x: 0, y: 0, width: 520, height: 42); form.addSubview(note)
+        note.frame = NSRect(x: 0, y: 0, width: 520, height: 74); form.addSubview(note)
         dialog.accessoryView = form
         dialog.addButton(withTitle: "Start modem"); dialog.addButton(withTitle: "Cancel")
         applyMonospace(dialog.window.contentView)
@@ -150,6 +156,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         current.input = inputs[input.indexOfSelectedItem].0; current.output = outputs[output.indexOfSelectedItem].0
         current.ptt = methods[ptt.indexOfSelectedItem].0
         current.pttAddress = address.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        current.externalPorts = ports.state == .on
         current.commandPort = port.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
         current.kissPort = kiss.stringValue.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let validCall = current.call.range(of: "^[A-Z0-9]{1,15}(-[0-9]{1,2})?$", options: .regularExpression) != nil && !current.call.hasPrefix("N0CALL")
@@ -165,12 +172,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         stop { [self] in
             do {
                 try FileManager.default.createDirectory(at: stateDirectory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+                let attributes = try FileManager.default.attributesOfItem(atPath: stateDirectory.path)
+                guard attributes[.type] as? FileAttributeType == .typeDirectory else { throw POSIXError(.EINVAL) }
+                try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: stateDirectory.path)
                 var settings = savedSettings()
                 settings["call"] = current.call; settings["capture"] = current.input; settings["playback"] = current.output
                 settings.removeValue(forKey: "hf"); settings.removeValue(forKey: "fm")
                 settings[current.mode.hasPrefix("hf") ? "hf" : "fm"] = String(current.mode.dropFirst(2))
                 let text = settings.keys.sorted().map { "\($0) = \(settings[$0]!)\n" }.joined()
-                try text.write(to: stateDirectory.appendingPathComponent("settings"), atomically: true, encoding: .utf8)
+                let settingsURL = stateDirectory.appendingPathComponent("settings")
+                let temporary = stateDirectory.appendingPathComponent(".settings-" + UUID().uuidString)
+                let descriptor = open(temporary.path, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0o600)
+                guard descriptor >= 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+                let file = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
+                defer { try? file.close(); unlink(temporary.path) }
+                try file.write(contentsOf: Data(text.utf8))
+                try file.synchronize()
+                try file.close()
+                guard rename(temporary.path, settingsURL.path) == 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
                 defaults.set(try JSONEncoder().encode(current), forKey: "stationConfiguration")
                 start()
             } catch { alert("Couldn’t save station settings", error.localizedDescription) }
@@ -297,13 +316,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     }
     @objc func reload() { if let modemURL { web.load(URLRequest(url: modemURL)) } }
     @objc func about() {
-        NSApp.orderFrontStandardAboutPanel(options: [.applicationName: "XARA", .applicationVersion: "0.1.1"])
+        NSApp.orderFrontStandardAboutPanel(options: [.applicationName: "XARA", .applicationVersion: "0.1.1 (macOS build 2)"])
     }
     func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-        if action.shouldPerformDownload { decisionHandler(.download); return }
         guard let url = action.request.url else { decisionHandler(.cancel); return }
-        if url.scheme == "about" { decisionHandler(.allow); return }
+        if url.scheme == "about", !action.shouldPerformDownload { decisionHandler(.allow); return }
         guard let endpoint = modemURL else { decisionHandler(.cancel); return }
+        if action.shouldPerformDownload {
+            let source = url.scheme == "blob" ? URL(string: String(url.absoluteString.dropFirst(5))) : nil
+            decisionHandler(source?.scheme == endpoint.scheme && source?.host == endpoint.host && source?.port == endpoint.port ? .download : .cancel)
+            return
+        }
         decisionHandler(url.scheme == endpoint.scheme && url.host == endpoint.host && url.port == endpoint.port ? .allow : .cancel)
     }
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {

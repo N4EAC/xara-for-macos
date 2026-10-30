@@ -28,7 +28,7 @@ pub const WS_IDLE: Duration = Duration::from_secs(6);
 pub const TOKEN_FILE: &str = "ui-token";
 const ACCEPT_BACKOFF: Duration = Duration::from_millis(100);
 const HEADERS: &str = "Cache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\nX-Frame-Options: DENY\r\n\
-    Content-Security-Policy: default-src 'self'; connect-src 'self' ws: wss:; frame-ancestors 'none'; \
+    Content-Security-Policy: default-src 'self'; connect-src 'self'; frame-ancestors 'none'; \
     base-uri 'none'; form-action 'none'\r\nReferrer-Policy: no-referrer\r\n";
 
 pub trait Controls: Send + 'static {
@@ -69,6 +69,8 @@ impl Controls for Controller {
 #[derive(Clone, Default)]
 pub struct Access {
     pub control: bool,
+    /// Require the token for telemetry as well as controls (used by the native app).
+    pub private: bool,
     pub token: Option<String>,
     pub hosts: Vec<String>,
     pub settings: Option<Arc<Settings>>,
@@ -220,6 +222,9 @@ fn serve(
     pages: Pages,
     mut access: Access,
 ) -> io::Result<UiServer> {
+    if access.private && (!access.control || !access.token.as_deref().is_some_and(valid_token)) {
+        return Err(io::Error::new(io::ErrorKind::InvalidInput, "private UI requires an enabled valid token"));
+    }
     let l = TcpListener::bind((addr, port))?;
     let local = l.local_addr()?;
     l.set_nonblocking(true)?;
@@ -487,11 +492,17 @@ fn route(mut s: TcpStream, r: &Request, joins: &Sender<Msg>, ctx: &Ctx) -> io::R
         );
         return respond(&mut s, "403 Forbidden", "text/plain", body.as_bytes());
     }
+    if ctx.access.private && host != s.local_addr()?.to_string() {
+        return respond(&mut s, "403 Forbidden", "text/plain", b"use the local UI address\n");
+    }
     if r.method != "GET" {
         return respond(&mut s, "405 Method Not Allowed", "text/plain", b"GET only\n");
     }
     if !fetch_allowed(r) {
         return respond(&mut s, "403 Forbidden", "text/plain", b"cross-site request refused\n");
+    }
+    if ctx.access.private && matches!(r.path.as_str(), "/ws" | "/stream") && !authorized(r, ctx) {
+        return respond(&mut s, "403 Forbidden", "text/plain", b"authenticated UI access required\n");
     }
     match r.path.as_str() {
         "/" | "/index.html" if r.param("token").is_some() => login(&mut s, r, ctx),
@@ -554,7 +565,9 @@ fn fetch_allowed(r: &Request) -> bool {
 fn same_origin(r: &Request) -> bool {
     let Some(origin) = r.header("origin") else { return true };
     let Some(host) = r.header("host") else { return false };
-    origin.split_once("://").is_some_and(|(_, authority)| authority.eq_ignore_ascii_case(host))
+    origin
+        .split_once("://")
+        .is_some_and(|(scheme, authority)| matches!(scheme, "http" | "https") && authority.eq_ignore_ascii_case(host))
 }
 
 fn join(s: &TcpStream, kind: Kind, role: Role, permit: Permit, joins: &Sender<Msg>) -> io::Result<(u64, Arc<Writer>)> {
@@ -695,10 +708,7 @@ fn stream(mut s: TcpStream, joins: &Sender<Msg>, ctx: &Ctx) -> io::Result<()> {
     let Some(permit) = Permit::take(&ctx.open[1], MAX_STREAMS) else {
         return respond(&mut s, "503 Service Unavailable", "text/plain", b"too many streams open\n");
     };
-    write!(
-        s,
-        "HTTP/1.1 200 OK\r\nContent-Type: application/x-ndjson\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n"
-    )?;
+    write!(s, "HTTP/1.1 200 OK\r\nContent-Type: application/x-ndjson\r\n{HEADERS}Connection: close\r\n\r\n")?;
     join(&s, Kind::Stream, Role::View, permit, joins).map(drop)
 }
 

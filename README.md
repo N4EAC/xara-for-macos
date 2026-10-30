@@ -15,7 +15,7 @@ Based on **[XARA by x0rro](https://github.com/x0rro/xara)**. The original projec
 | Processor | Apple Silicon (arm64; M1 or newer) |
 | Operating system | macOS 12 Monterey or newer |
 | Intel Macs | Not supported by the downloadable ZIP; it is not a Universal build |
-| Modem version | XARA 0.1.1 |
+| Modem version | XARA 0.1.1; macOS application build 2 |
 | Audio | Native Core Audio; 48 kHz, signed 16-bit mono PCM internally |
 | Signing | Ad-hoc signed; not Developer ID signed or notarized |
 
@@ -27,11 +27,21 @@ Rust and Xcode are only needed to build from source. The downloadable app contai
 2. Open XARA and grant microphone access when prompted. This permission also covers audio received through a USB radio interface.
 3. Open **Modem → Station & Radio…** (⌘,) and enter your callsign, select HF bandwidth or FM mode, and choose your radio's audio input and output. The **Setup** tab contains station, audio, and timing settings.
 4. Start in receive-only mode. To transmit, explicitly select the radio audio devices and configure serial RTS/DTR, Hamlib rigctld, or VOX PTT. Check audio levels and PTT timing with your radio before an on-air session. CM108 HID PTT is Linux-only.
-5. Connect your radio software to `127.0.0.1`: command port **8300**, data port **8301**, or KISS TCP **8100**. Ports can be changed in Station & Radio if already in use.
+5. If using external radio software, enable **External software → Enable command/data and KISS ports** in Station & Radio, then connect to `127.0.0.1`: command port **8300**, data port **8301**, or KISS TCP **8100**. These ports are off by default, are unauthenticated for compatibility, and can be changed in Station & Radio if already in use. Enable them only for trusted local radio software.
 
 Save and restart applies engine settings while idle. Settings are stored in `~/Library/Application Support/XARA` and macOS app preferences.
 
 **Modem → Open in Browser** (⌘⇧B) opens the same interface in your default browser. It connects to the app's running modem using an authenticated loopback address; keep the app open. **Modem → Fit to Panels** (⌘0) fits the window to the selected tab.
+
+## Privacy and network access
+
+The macOS app opens one authenticated UI listener on `127.0.0.1` using an automatically assigned port. Its telemetry, received-data previews, waterfall, and controls require the session token. Command/data and KISS listeners are disabled until explicitly enabled in Station & Radio. They remain loopback-only and are unauthenticated for compatibility with radio software. Older saved configurations also default to these ports disabled after this update.
+
+There is no analytics, automatic update checker, cloud service, or automatic Internet request in the app code. The only configurable outbound TCP connection is Hamlib rigctld PTT, used when selected; its default address is `127.0.0.1:4532`. A remote rigctld address connects to the host you explicitly configure.
+
+Saving settings stores callsign, mode, audio-device identifiers, drive/timing, and native PTT/port preferences locally. The app settings directory is owner-only (`0700`) and the settings file is owner-only (`0600`). Window geometry is also saved by macOS. Received payload previews, telemetry history, and audio buffers remain in memory; they are not automatically logged or uploaded. Export writes monitor text only after a user action; the native app shows a save dialog. The separate command-line modem records audio only when explicitly given `--record`.
+
+The embedded web view uses a nonpersistent website data store. An external browser can retain the local URL, session cookie, and display preferences according to its own settings; no payload log is saved in browser storage by the UI. These protections do not isolate XARA from software already running as your macOS user. See [the security review](SECURITY_REVIEW.md) for scope, evidence, and limitations.
 
 ## Instruments and interfaces
 

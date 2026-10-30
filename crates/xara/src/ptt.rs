@@ -5,7 +5,7 @@ type Ioctl = libc::Ioctl;
 
 use std::cell::Cell;
 use std::fs::{File, OpenOptions};
-use std::io::{self, BufRead, BufReader, IsTerminal, Write};
+use std::io::{self, BufRead, BufReader, IsTerminal, Read, Write};
 use std::net::{TcpStream, ToSocketAddrs};
 use std::os::fd::AsRawFd;
 use std::os::unix::fs::OpenOptionsExt;
@@ -214,7 +214,7 @@ impl Rigctld {
         };
         w.write_all(cmd)?;
         let mut l = String::new();
-        if r.read_line(&mut l)? == 0 || !l.ends_with('\n') {
+        if r.take(1025).read_line(&mut l)? == 0 || l.len() > 1024 || !l.ends_with('\n') {
             return Err(io::Error::other(format!("rigctld {} closed", self.addr)));
         }
         Ok(l)

@@ -13,5 +13,5 @@ CLANG_MODULE_CACHE_PATH="${TMPDIR:-/tmp}/xara-clang-cache" \
   -import-objc-header "$root/macos/XARA.h" "$root/macos/XARA.swift" "$static_lib" -o "$output/Contents/MacOS/XARA"
 swift -module-cache-path "${TMPDIR:-/tmp}/xara-swift-cache" "$root/macos/Icon.swift" "$output/Contents/Resources/XARA.icns"
 cp "$root/macos/Info.plist" "$output/Contents/Info.plist"
-codesign --force --sign - --entitlements "$root/macos/Entitlements.plist" "$output"
+codesign --force --options runtime --sign - --entitlements "$root/macos/Entitlements.plist" "$output"
 printf 'Built %s\n' "$output"

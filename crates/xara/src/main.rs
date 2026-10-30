@@ -468,6 +468,7 @@ fn serve<M: Modem>(
             let token = a.ui_token.clone();
             let access = Access {
                 control: a.ui_control,
+                private: false,
                 token: token.clone(),
                 hosts: a.ui.hosts.clone(),
                 settings: Some(settings),

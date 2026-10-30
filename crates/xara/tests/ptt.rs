@@ -27,10 +27,15 @@ fn cm108_reports() {
     assert_eq!(cm108_report(3, false), [0, 0, 0, 4, 0]);
     assert_eq!(cm108_report(1, true), [0, 0, 1, 1, 0]);
     let f = Scratch::new("cm108");
-    let mut c = Cm108::open(f.path(), 3).unwrap();
-    c.set(true).unwrap();
-    c.set(false).unwrap();
-    assert_eq!(std::fs::read(&f.0).unwrap(), [[0, 0, 0, 4, 0], [0, 0, 4, 4, 0], [0, 0, 0, 4, 0]].concat());
+    #[cfg(not(target_os = "macos"))]
+    {
+        let mut c = Cm108::open(f.path(), 3).unwrap();
+        c.set(true).unwrap();
+        c.set(false).unwrap();
+        assert_eq!(std::fs::read(&f.0).unwrap(), [[0, 0, 0, 4, 0], [0, 0, 4, 4, 0], [0, 0, 0, 4, 0]].concat());
+    }
+    #[cfg(target_os = "macos")]
+    assert!(matches!(Cm108::open(f.path(), 3), Err(e) if e.kind() == io::ErrorKind::Unsupported));
 }
 
 struct Scratch(std::path::PathBuf);
@@ -71,7 +76,8 @@ fn serial_refuses_non_serial_devices() {
     }
 }
 
-fn fake_rigctld(reply: &'static str) -> (String, Arc<Mutex<Vec<String>>>) {
+fn fake_rigctld(reply: impl Into<String>) -> (String, Arc<Mutex<Vec<String>>>) {
+    let reply = reply.into();
     let l = TcpListener::bind("127.0.0.1:0").unwrap();
     let addr = l.local_addr().unwrap().to_string();
     let log = Arc::new(Mutex::new(Vec::new()));
@@ -82,7 +88,7 @@ fn fake_rigctld(reply: &'static str) -> (String, Arc<Mutex<Vec<String>>>) {
         for line in BufReader::new(s).lines() {
             let line = line.unwrap();
             log2.lock().unwrap().push(line.clone());
-            let r = if line == "T 1" { reply } else { "RPRT 0" };
+            let r = if line == "T 1" { reply.as_str() } else { "RPRT 0" };
             if w.write_all(format!("{r}\n").as_bytes()).is_err() {
                 break;
             }
@@ -658,4 +664,11 @@ fn is_hidraw_accepts_only_hidraw_char_devices() {
     {
         assert!(xara::ptt::is_hidraw(h.path().to_str().unwrap()));
     }
+}
+
+#[test]
+fn rigctld_rejects_an_overlong_reply() {
+    let (addr, _) = fake_rigctld("X".repeat(2048));
+    let mut r = Rigctld::open(&addr).unwrap();
+    assert!(r.set(true).is_err());
 }

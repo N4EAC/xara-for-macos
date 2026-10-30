@@ -216,3 +216,16 @@ fn explicit_shutdown_releases_host_and_kiss_ports_with_connected_clients() {
     kiss.shutdown();
     let _kiss = std::net::TcpListener::bind(addr).unwrap();
 }
+
+#[test]
+fn disabled_host_has_no_tcp_endpoints_or_clients() {
+    let mut h = Host::disabled();
+    assert_eq!(h.cmd_addr.port(), 0);
+    assert_eq!(h.data_addr.port(), 0);
+    assert!(!h.has_cmd_client());
+    assert!(!h.has_data_client());
+    h.line("not sent");
+    h.data(b"not sent");
+    assert!(matches!(h.input.try_recv(), Err(std::sync::mpsc::TryRecvError::Disconnected)));
+    h.shutdown();
+}

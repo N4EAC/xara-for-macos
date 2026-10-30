@@ -31,6 +31,7 @@ struct Config {
     timing: PttTiming,
     ptt: Option<PttSpec>,
     port: u16,
+    host_ports: bool,
     kiss_port: Option<u16>,
 }
 
@@ -46,6 +47,7 @@ impl Config {
             timing: PttTiming::default(),
             ptt: None,
             port: 8300,
+            host_ports: false,
             kiss_port: Some(8100),
         };
         for entry in settings::entries(text)? {
@@ -78,6 +80,13 @@ impl Config {
             "ptt-max-s" => self.timing.max_on = Duration::from_secs(number(value)?),
             "ptt" => self.ptt = if value.is_empty() || value == "off" { None } else { Some(PttSpec::parse(value)?) },
             "port" => self.port = value.parse().map_err(|_| "invalid command port")?,
+            "host-ports" => {
+                self.host_ports = match value {
+                    "on" => true,
+                    "off" => false,
+                    _ => return Err("host-ports must be on or off".into()),
+                }
+            }
             "kiss-port" => {
                 self.kiss_port =
                     if value == "off" { None } else { Some(value.parse().map_err(|_| "invalid KISS port")?) }
@@ -129,6 +138,14 @@ impl Config {
         Ok(next)
     }
 
+    fn host(&self) -> Result<Host, String> {
+        if self.host_ports {
+            Host::bind("127.0.0.1", self.port).map_err(|e| format!("Command/data ports: {e}"))
+        } else {
+            Ok(Host::disabled())
+        }
+    }
+
     fn values(&self) -> Pairs {
         let mode =
             self.fm.map(|bw| ("fm", format!("{bw:?}").to_lowercase())).unwrap_or(("hf", self.hf.hz().to_string()));
@@ -173,8 +190,25 @@ fn devices() -> std::io::Result<Devices> {
     Ok(Devices { backend: "coreaudio", capture: map(capture), playback: map(playback) })
 }
 
+fn private_state_dir(dir: &Path) -> Result<(), String> {
+    use std::os::unix::fs::PermissionsExt;
+    std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+    if std::fs::symlink_metadata(dir).map_err(|e| e.to_string())?.file_type().is_symlink() {
+        return Err("The app state directory must not be a symbolic link.".into());
+    }
+    std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o700)).map_err(|e| e.to_string())?;
+    let path = dir.join(settings::FILE);
+    if let Ok(meta) = std::fs::symlink_metadata(&path) {
+        if !meta.is_file() || meta.file_type().is_symlink() {
+            return Err("The settings path must be a regular file.".into());
+        }
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
 fn run(base: Config, dir: PathBuf, stop: Arc<AtomicBool>, status: Arc<Mutex<Status>>) -> Result<(), String> {
-    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    private_state_dir(&dir)?;
     let token = new_token().map_err(|e| e.to_string())?;
     let mut ui_port = 0;
     loop {
@@ -195,7 +229,7 @@ fn run(base: Config, dir: PathBuf, stop: Arc<AtomicBool>, status: Arc<Mutex<Stat
         let mut io =
             audio::coreaudio::CoreAudio::open(&cfg.capture, &cfg.playback, cfg.ptt.is_some(), cfg.ptt.is_none())
                 .map_err(|e| e.to_string())?;
-        let host = Host::bind("127.0.0.1", cfg.port).map_err(|e| format!("Command/data ports: {e}"))?;
+        let host = cfg.host()?;
         // Queue buffers contribute 30 ms in addition to the configured PTT lead time.
         let opts = Options { drive_db: cfg.drive, tx_latency: (cfg.timing.lead.as_millis() as i64 * 48) + 1440 };
         let result = if let Some(bw) = cfg.fm {
@@ -241,7 +275,7 @@ fn serve<M: Modem>(
     let Workspace { stop, status, token, port: ui_port } = workspace;
     let mut ui = None;
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        if let Some(port) = cfg.kiss_port {
+        if let Some(port) = cfg.kiss_port.filter(|_| cfg.host_ports) {
             tnc.set_kiss(KissServer::bind("127.0.0.1", port).map_err(|e| format!("KISS port: {e}"))?);
         }
         let (telemetry, feed) = telemetry::channel(EVENT_QUEUE);
@@ -256,7 +290,13 @@ fn serve<M: Modem>(
             *ui_port,
             feed,
             info,
-            Access { control: true, token: Some(token.into()), settings: Some(settings), hosts: Vec::new() },
+            Access {
+                control: true,
+                private: true,
+                token: Some(token.into()),
+                settings: Some(settings),
+                hosts: Vec::new(),
+            },
         )
         .map_err(|e| e.to_string())?;
         *ui_port = server.addr.port();
@@ -461,7 +501,7 @@ mod tests {
                 validate: Box::new(|_| Ok(())),
                 list: Box::new(devices),
             }));
-            let host = Host::bind("127.0.0.1", 0).unwrap();
+            let host = cfg.host().unwrap();
             let mut tnc =
                 Tnc::new(station::hf::Station::new(hf::Config::new(cfg.hf, &cfg.call), Options::default()), host);
             let mut input = SimulatedInput(reads);
@@ -545,7 +585,40 @@ mod tests {
     }
 
     #[test]
+    fn private_state_repairs_permissions_and_refuses_symbolic_links() {
+        use std::os::unix::fs::{PermissionsExt, symlink};
+        let directory = std::env::temp_dir().join(format!("xara-private-state-{}", std::process::id()));
+        let alias = directory.with_extension("link");
+        std::fs::create_dir_all(&directory).unwrap();
+        let settings = directory.join(settings::FILE);
+        let victim = directory.join("victim");
+        std::fs::write(&settings, "call = W1AW\n").unwrap();
+        std::fs::set_permissions(&directory, std::fs::Permissions::from_mode(0o755)).unwrap();
+        std::fs::set_permissions(&settings, std::fs::Permissions::from_mode(0o644)).unwrap();
+        private_state_dir(&directory).unwrap();
+        let mode = |p: &Path| std::fs::metadata(p).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode(&directory), 0o700);
+        assert_eq!(mode(&settings), 0o600);
+        std::fs::write(&victim, "keep").unwrap();
+        std::fs::set_permissions(&victim, std::fs::Permissions::from_mode(0o644)).unwrap();
+        std::fs::remove_file(&settings).unwrap();
+        symlink(&victim, &settings).unwrap();
+        assert!(private_state_dir(&directory).is_err());
+        assert_eq!(mode(&victim), 0o644);
+        assert_eq!(std::fs::read_to_string(&victim).unwrap(), "keep");
+        symlink(&directory, &alias).unwrap();
+        assert!(private_state_dir(&alias).is_err());
+        std::fs::remove_file(alias).unwrap();
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
     fn config_rejects_invalid_identity_ports_and_radio_defaults() {
+        let cfg = Config::parse("call=W1AW").unwrap();
+        assert!(!cfg.host_ports, "external radio software must be explicitly enabled");
+        assert_eq!(cfg.host().unwrap().cmd_addr.port(), 0);
+        assert!(Config::parse("call=W1AW\nhost-ports=on").unwrap().host_ports);
+        assert!(Config::parse("call=W1AW\nhost-ports=yes").is_err());
         assert!(Config::parse("call=N0CALL").is_err());
         assert!(Config::parse("call=W1AW\nport=65535").is_err());
         assert!(Config::parse("call=W1AW\nport=8100").is_err());
