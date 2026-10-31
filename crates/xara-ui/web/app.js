@@ -19,6 +19,7 @@ let reportedPanelReady = false;
 let settingsAvailable = false;
 let settingsWritable = false;
 const ledUntil = new Map();
+const audioDevices = new Map();
 let verbosity = Number(pref.get("xara.verbosity", "0"));
 const log = new LogView($("log"), 2000, 600);
 log.filter = (e) => e.level <= verbosity;
@@ -233,19 +234,29 @@ function showSettings(m) {
   if (!m.available) setMsg("Saving settings needs --state-dir, or running as a systemd service.", false);
   if (settingsDirty) return;
   for (const el of $("set-form").querySelectorAll("input, select")) {
-    el.value = m.saved[el.name] || "";
-    if (el.tagName === "INPUT") el.placeholder = m.values[el.name] || "";
-    if (el.tagName === "SELECT") el.options[0].textContent = `${window.xaraEmbedded ? "app default" : "command line"} (${m.values[el.name] || "default"})`;
+    if (el.id === "dev-capture" || el.id === "dev-playback") {
+      el.dataset.inherited = m.values[el.name] || "default";
+      fillDevices(el.id, audioDevices.get(el.id) || [], m.saved[el.name] || "");
+    } else {
+      el.value = m.saved[el.name] || "";
+      if (el.tagName === "INPUT") el.placeholder = m.values[el.name] || "";
+      if (el.tagName === "SELECT") el.options[0].textContent = `${window.xaraEmbedded ? "app default" : "command line"} (${m.values[el.name] || "default"})`;
+    }
   }
 }
 
-function fillDevices(id, list) {
-  $(id).replaceChildren(...list.map((d) => {
-    const o = document.createElement("option");
-    o.value = d.name;
-    o.label = d.desc;
-    return o;
-  }));
+function fillDevices(id, list, selected = $(id).value) {
+  audioDevices.set(id, list);
+  const el = $(id);
+  const inherited = el.dataset.inherited || "default";
+  const label = list.find(d => d.name === inherited)?.desc || inherited;
+  const options = [new Option(`${window.xaraEmbedded ? "app default" : "command line"} (${label})`, "")];
+  for (const d of list) options.push(new Option(d.desc || d.name, d.name));
+  // Preserve a saved or unsaved selection across hot-plug/refresh. Never silently
+  // switch a radio output to another device when the selected device disappears.
+  if (selected && !list.some(d => d.name === selected)) options.push(new Option(`Unavailable device (${selected})`, selected));
+  el.replaceChildren(...options);
+  el.value = selected;
 }
 
 function settingsResult(m) {

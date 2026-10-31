@@ -69,7 +69,7 @@
   </div></section>
   <div class="telemetry-line" aria-label="Telemetry health"><span>DSP time <b id="dsp-time">—</b> s</span><span>Telemetry drops <b id="telemetry-drops">—</b></span></div>
   <section class="card wf">
-    <div class="card-head"><h2>Waterfall</h2><span id="wf-cursor" class="cursor"></span><label class="toggle"><input type="checkbox" id="wf-on" checked> Live spectrum</label></div>
+    <div class="card-head"><h2>RX waterfall</h2><span id="wf-cursor" class="cursor"></span><label class="toggle"><input type="checkbox" id="wf-on" checked> Live RX spectrum</label></div>
     <div class="wf-wrap" id="wf-wrap"><canvas id="wf" width="512" height="200" aria-label="Radio audio frequency waterfall" role="img"></canvas><div id="wf-band" class="band"></div><span id="wf-empty">Waiting for radio audio</span></div>
     <canvas id="wf-axis" height="26" aria-label="Frequency in Hz" role="img"></canvas>
     <div class="chart-caption"><span>Passband <b id="passband-low">—</b>–<b id="passband-high">—</b> Hz</span><span class="spectrum-key">LOW <i></i> HIGH</span></div>
@@ -96,7 +96,7 @@
     </dl>
   </section>
   <section class="card">
-    <div class="card-head"><h2>Waterfall</h2></div>
+    <div class="card-head"><h2>RX waterfall</h2></div>
     <dl class="diagnostic-list">
       <div><dt>Passband low</dt><dd><span id="diag-passband-low">—</span> Hz</dd></div>
       <div><dt>Passband high</dt><dd><span id="diag-passband-high">—</span> Hz</dd></div>
@@ -117,12 +117,11 @@
       <label>Station callsign<input name="call" spellcheck="false" autocapitalize="characters" placeholder="YOURCALL"></label>
       <label id="set-hf">HF bandwidth<select name="hf"><option value="">command line</option><option>500</option><option>2300</option><option>2750</option></select></label>
       <label id="set-fm" hidden>FM mode<select name="fm"><option value="">command line</option><option>narrow</option><option>wide</option></select></label>
-      <label>Radio audio input<input name="capture" list="dev-capture" spellcheck="false" placeholder="Capture device on modem host"></label>
-      <label>Radio audio output<input name="playback" list="dev-playback" spellcheck="false" placeholder="Playback device on modem host"></label>
+      <label>Radio audio input<select name="capture" id="dev-capture"><option value="">app default</option></select></label>
+      <label>Radio audio output<select name="playback" id="dev-playback"><option value="">app default</option></select></label>
       <label>PTT lead · ms<input name="ptt-lead-ms" type="number" min="0" max="1000" step="10"></label>
       <label>PTT tail · ms<input name="ptt-tail-ms" type="number" min="0" max="1000" step="10"></label>
     </fieldset></form>
-    <datalist id="dev-capture"></datalist><datalist id="dev-playback"></datalist>
     <div class="settings-bottom"><p class="hint">Empty fields inherit command-line settings. Changes restart the modem while idle.<br>Audio devices belong to the computer running the modem.</p><div class="buttons"><button id="set-devices" class="btn" type="button" disabled>Refresh devices</button><button id="set-reset" class="btn" type="button" disabled>Use command line</button><button id="set-save" class="btn primary" type="button" disabled>Save and restart</button></div></div>
     <p class="hint">Saving stores station, audio, and timing settings on this computer. TX drive is saved automatically when changed. Received data and audio are not recorded by this UI. Export saves the selected monitor text. Browser storage remembers display preferences.</p>
     <p id="set-msg" class="hint" role="status"></p>

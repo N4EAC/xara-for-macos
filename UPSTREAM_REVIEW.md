@@ -1,6 +1,6 @@
 # Upstream alignment and telemetry review
 
-Reviewed October 31, 2026 against original XARA **0.1.3**, commit [`09a9201381b00499ada9d9c816bd05bb8f175705`](https://github.com/x0rro/xara/commit/09a9201381b00499ada9d9c816bd05bb8f175705). The previous macOS distribution used upstream 0.1.1. The current app is **0.1.3 / macOS build 5**.
+Reviewed October 31, 2026 against original XARA **0.1.3**, commit [`09a9201381b00499ada9d9c816bd05bb8f175705`](https://github.com/x0rro/xara/commit/09a9201381b00499ada9d9c816bd05bb8f175705). The previous macOS distribution used upstream 0.1.1. The current app is **0.1.3 / macOS build 6**.
 
 ## Upstream integration
 
@@ -56,10 +56,20 @@ Positive drive is digital waveform gain relative to the modem's nominal level. I
 | Link status/callsigns | Modem state and configured/peer callsigns; established-connection flag comes from CONNECTED/DISCONNECTED reports, so calling/answering is not falsely styled as connected |
 | Received bytes | Full decoded connection payload byte count, reset on CONNECTED and retained after disconnect; UI reconnection or monitor Clear does not reset it |
 | Link level, attempts/retries, buffer | Station/session state and modem host configuration, not UI estimates |
-| Waterfall/passband | Actual input audio and mode passband; published FFT/span/floor/quantization parameters are shown in Diagnostics |
+| RX waterfall/passband | Actual receive input audio and mode passband; transmit output is not mixed into this display; published FFT/span/floor/quantization parameters are shown in Diagnostics |
 | DSP time/drops | Processed modem sample time and telemetry queue drops; neither is network latency or packet error rate |
 
 The display clears stale live instruments and preserves the documented connection byte-total semantics. Audio meters show digital PCM levels in dBFS, not RF watts.
+
+## GitHub issue review and device selection
+
+Reviewed the fork's [audio-device issue #1](https://github.com/N4EAC/xara-for-macos/issues/1), filed against build 2. The current build uses upstream's newer Rust Core Audio backend. Build 6 additionally preserves a device's usable direction when its driver rejects the other stream-configuration scope. Regression tests cover input-only/output-only errors and multi-buffer aggregate channel counts. The app's inventory was compared with an independent Core Audio implementation on the development Mac: all 10 inputs and 2 outputs matched. The reporter's IC-7100/aggregate-device setup has not been reproduced, so this does not establish that every aspect of the report is resolved.
+
+Shared native/web Setup now uses device-name dropdowns rather than datalist autocomplete, which could show encoded UIDs and filter suggestions by the existing value. Identifiers remain stable in settings; unavailable selections are preserved across refresh/hot-plug instead of silently selecting another output. Native Station & Radio already uses named popup menus.
+
+The waterfall is explicitly labelled **RX waterfall / Live RX spectrum**. It receives only the selected input, including any audio the radio supplies during transmit. It does not display internally generated TX audio; quiet rows during transmit are expected. TX RMS/peak/clip meters remain the output instrumentation.
+
+The original repository remains at the reviewed 0.1.3 commit. Its two open issues, [wider xara-monitor bandwidth #32](https://github.com/x0rro/xara/issues/32) and [Raspberry Pi GPIO PTT #27](https://github.com/x0rro/xara/issues/27), are feature requests outside this native macOS build. Closed reports concerning SSIDs, HF PTT-tail timing, FM timing and host descriptor cleanup were checked against the incorporated upstream changes and this fork's lifecycle tests. No new PHY/ARQ modifications were needed.
 
 ## About and Check for Updates
 
@@ -76,7 +86,7 @@ There is no app/tool installer, automatic updater, or automatic rebuild/restart.
 
 ## Validation
 
-- **453 workspace tests passed; 8 ignored** because they require physical loopback or external VARA captures. This includes simulated HF/FM audio links, DSP/protocol vectors, byte counters, host interfaces, private UI access, drive persistence across a full engine restart, +10 dB limits, PTT tail/controller state, and device-output meter behavior.
+- **455 workspace tests passed; 8 ignored** because they require physical loopback or external VARA captures. This includes simulated HF/FM audio links, DSP/protocol vectors, byte counters, host interfaces, private UI access, drive persistence across a full engine restart, +10 dB limits, PTT tail/controller state, and device-output meter behavior.
 - Additional MYCALL regressions verify the exact `N4EAC` retry, full-list matching, live HF/FM payload transfer, unchanged registration timing, and preserved rejection/deferred changes. This confirms the modem behavior; the reported MacWinlink incident still requires field confirmation.
 - Clippy for macOS app features/all targets passed with warnings denied; rustfmt and whitespace checks passed.
 - Browser regression checks passed for the +10 dB slider command, Saved feedback, diagnostics, waveform display, safe payload text, setup, export, responsive layout, stale values, and reconnection behavior.
@@ -90,12 +100,12 @@ Repeat the main test suite with:
 cargo test --locked --release --workspace --no-default-features --features xara/macos-app
 ```
 
-The October 30 [security review](SECURITY_REVIEW.md) remains evidence for build 2; its artifact hashes and test counts are historical. Build 5 retains the private-listener and settings-permission defaults. The new user-requested GitHub metadata check is the explicitly disclosed network addition.
+The October 30 [security review](SECURITY_REVIEW.md) remains evidence for build 2; its artifact hashes and test counts are historical. Build 6 retains the private-listener and settings-permission defaults. The new user-requested GitHub metadata check is the explicitly disclosed network addition.
 
-## Build 5 package
+## Build 6 package
 
-App: `target/macos/XARA.app`. ZIP: `target/release-assets/v0.1.3-macos.5/XARA-macOS-arm64.zip`. Apple Silicon arm64, macOS 12+; ad-hoc signed with hardened runtime, not notarized.
+App: `target/macos/XARA.app`. ZIP: `target/release-assets/v0.1.3-macos.6/XARA-macOS-arm64.zip`. Apple Silicon arm64, macOS 12+; ad-hoc signed with hardened runtime, not notarized.
 
 ```text
-eb3a9aba56406dbdc77d1872df552678394c62e2a5ebd8b8d34604b8368a8891  XARA-macOS-arm64.zip
+e8a86ad09df505b1f6b7aa003185efffd3347cb131b03f71815e9e3a37c41bfd  XARA-macOS-arm64.zip
 ```

@@ -200,8 +200,21 @@ fn property_vec<T: Copy>(id: ObjectId, selector: u32, scope: u32, zero: T) -> io
 
 fn channels(id: ObjectId, scope: u32) -> io::Result<u32> {
     let w = property_vec(id, DEVICE_STREAM_CONFIG, scope, 0u32)?;
+    stream_channels(&w)
+}
+
+fn stream_channels(w: &[u32]) -> io::Result<u32> {
     let short = || io::Error::other("CoreAudio returned a short stream configuration");
     (0..*w.first().ok_or_else(short)? as usize).map(|i| w.get(2 + 4 * i).copied().ok_or_else(short)).sum()
+}
+
+// Some drivers do not implement the stream property for an unsupported direction.
+// A failure on one side must not hide the device's working direction.
+fn device_channels(input: io::Result<u32>, output: io::Result<u32>) -> Option<(u32, u32)> {
+    match (input, output) {
+        (Err(_), Err(_)) => None,
+        (input, output) => Some((input.unwrap_or(0), output.unwrap_or(0))),
+    }
 }
 
 fn latency(id: ObjectId, scope: u32) -> u32 {
@@ -240,7 +253,9 @@ pub fn devices() -> io::Result<Vec<DeviceInfo>> {
     let mut v = Vec::new();
     for id in ids {
         let Ok(uid) = string_property(id, DEVICE_UID) else { continue };
-        let (Ok(inputs), Ok(outputs)) = (channels(id, SCOPE_INPUT), channels(id, SCOPE_OUTPUT)) else { continue };
+        let Some((inputs, outputs)) = device_channels(channels(id, SCOPE_INPUT), channels(id, SCOPE_OUTPUT)) else {
+            continue;
+        };
         v.push(DeviceInfo {
             name: string_property(id, OBJECT_NAME).unwrap_or_default(),
             inputs,
@@ -399,5 +414,29 @@ impl<T: Playback> AudioQueue<T> {
             unsafe { refill(&*q.user, q.raw, b, 0)? };
         }
         Ok(q)
+    }
+}
+
+#[cfg(test)]
+mod enumeration_tests {
+    use super::*;
+
+    #[test]
+    fn stream_channel_counts_include_all_buffers() {
+        assert_eq!(stream_channels(&[0]).unwrap(), 0);
+        assert_eq!(stream_channels(&[1, 0, 2, 0, 0, 0]).unwrap(), 2);
+        assert_eq!(stream_channels(&[2, 0, 2, 0, 0, 0, 4, 0, 0, 0]).unwrap(), 6);
+        assert!(stream_channels(&[]).is_err());
+        assert!(stream_channels(&[1, 0]).is_err());
+        assert!(stream_channels(&[2, 0, 2, 0, 0, 0]).is_err());
+    }
+
+    #[test]
+    fn unsupported_direction_does_not_hide_usable_device() {
+        let missing = || Err(io::Error::other("unsupported scope"));
+        assert_eq!(device_channels(Ok(2), missing()), Some((2, 0)));
+        assert_eq!(device_channels(missing(), Ok(2)), Some((0, 2)));
+        assert_eq!(device_channels(Ok(2), Ok(4)), Some((2, 4)));
+        assert_eq!(device_channels(missing(), missing()), None);
     }
 }
