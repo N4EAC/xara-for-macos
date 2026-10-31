@@ -3,7 +3,7 @@ use crate::settings::{Device, Devices, FILE, Pairs, Settings};
 use crate::telemetry::{Event, METER_FLOOR_DB, Meter, Snapshot, UI_TUNE_LIMIT};
 use crate::waterfall::{BINS, STEP_DB, WF_FLOOR_DB, Waterfall, span_for};
 use xara_arq::time::{SECOND, Time};
-use xara_host::command::DRIVE_MIN_DB;
+use xara_host::command::{DRIVE_MAX_DB, DRIVE_MIN_DB};
 use xara_host::response::{LinkWidth, Response};
 
 pub(crate) const PROTOCOL: u64 = 1;
@@ -31,6 +31,7 @@ pub(crate) fn hello(info: &Info, replay: usize, control: bool, locked: bool) -> 
         .bool("locked", locked)
         .num2("meter_floor", METER_FLOOR_DB)
         .num2("drive_min", DRIVE_MIN_DB)
+        .num2("drive_max", DRIVE_MAX_DB)
         .num2("tune_limit", secs(UI_TUNE_LIMIT))
         .num2("span", span_for(info.span_hz))
         .end()
@@ -84,6 +85,7 @@ pub(crate) fn status(s: &Snapshot) -> String {
         .obj("rx", meter(&s.rx))
         .obj("tx", meter(&s.tx))
         .bool("ptt", s.ptt)
+        .bool("connected", s.connected)
         .bool("busy", s.busy)
         .bool("tuning", s.tuning)
         .num2("tune_left", s.tune_left)
@@ -198,7 +200,7 @@ mod tests {
         s.rx.feed(&[0.5; 4]);
         assert_eq!(
             status(&s),
-            r#"{"t":"status","ts":1.5,"rx":{"rms":-6.02,"peak":-6.02,"clip":0},"tx":{"rms":-120,"peak":-120,"clip":0},"ptt":true,"busy":false,"tuning":false,"tune_left":0,"drive":0,"state":"Receiving","level":7,"peer":"N1CALL","bw":"2300","passband":[350,2650],"attempts":0,"retries":0,"afc":null,"sn":11.25,"bitrate":{"level":7,"bps":2412,"tx":false},"buffer":0,"calls":["N0CALL"],"received_bytes":0,"dropped":0}"#
+            r#"{"t":"status","ts":1.5,"rx":{"rms":-6.02,"peak":-6.02,"clip":0},"tx":{"rms":-120,"peak":-120,"clip":0},"ptt":true,"connected":false,"busy":false,"tuning":false,"tune_left":0,"drive":0,"state":"Receiving","level":7,"peer":"N1CALL","bw":"2300","passband":[350,2650],"attempts":0,"retries":0,"afc":null,"sn":11.25,"bitrate":{"level":7,"bps":2412,"tx":false},"buffer":0,"calls":["N0CALL"],"received_bytes":0,"dropped":0}"#
         );
     }
 

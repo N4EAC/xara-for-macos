@@ -12,13 +12,57 @@ fn ptt_spec_parse() {
     assert_eq!(PttSpec::parse("vox"), Ok(PttSpec::Vox));
     assert_eq!(PttSpec::parse("rts:/dev/ttyACM0"), Ok(PttSpec::Rts("/dev/ttyACM0".into())));
     assert_eq!(PttSpec::parse("dtr:/dev/ttyUSB1"), Ok(PttSpec::Dtr("/dev/ttyUSB1".into())));
-    assert_eq!(PttSpec::parse("cm108:/dev/hidraw2"), Ok(PttSpec::Cm108 { path: "/dev/hidraw2".into(), gpio: 3 }));
-    assert_eq!(PttSpec::parse("cm108:/dev/hidraw2:4"), Ok(PttSpec::Cm108 { path: "/dev/hidraw2".into(), gpio: 4 }));
+    let dev = |spec, path: &str, gpio| match cfg!(target_os = "macos") {
+        true => PttSpec::parse(spec).is_err_and(|e| e.contains("macOS has no hidraw")),
+        false => PttSpec::parse(spec) == Ok(PttSpec::Cm108 { path: path.into(), gpio }),
+    };
+    assert!(dev("cm108:/dev/hidraw2", "/dev/hidraw2", 3));
+    assert!(dev("cm108:/dev/hidraw2:4", "/dev/hidraw2", 4));
+    assert!(dev("cm108:/dev/0d8c:0004", "/dev/0d8c", 4));
+    let usb = |vendor, product, gpio| Ok(PttSpec::Cm108Usb { vendor, product, gpio });
+    assert_eq!(PttSpec::parse("cm108:0d8c:0012"), usb(0x0d8c, 0x0012, 3));
+    assert_eq!(PttSpec::parse("cm108:1209:7388:1"), usb(0x1209, 0x7388, 1));
+    assert_eq!(PttSpec::parse("cm108:0D8C:013A:8"), usb(0x0d8c, 0x013a, 8));
     assert_eq!(PttSpec::parse("rigctld"), Ok(PttSpec::Rigctld("127.0.0.1:4532".into())));
     assert_eq!(PttSpec::parse("rigctld:radio.lan:4533"), Ok(PttSpec::Rigctld("radio.lan:4533".into())));
-    for bad in ["", "rts", "rts:ttyACM0", "cm108:/dev/hidraw0:9", "cm108:/dev/hidraw0:0", "vox:x", "gpio:4"] {
+    let e = PttSpec::parse("vax").unwrap_err();
+    assert!(e.contains("cm108:VID:PID") || e.contains("|VID:PID"), "{e}");
+    assert_eq!(e.contains("cm108:DEV"), !cfg!(target_os = "macos"), "{e}");
+    assert_eq!(e.contains("trusdx"), cfg!(feature = "trusdx"), "{e}");
+    assert_eq!(PttSpec::parse("trusdx").is_ok(), cfg!(feature = "trusdx"));
+    for bad in [
+        "",
+        "rts",
+        "rts:ttyACM0",
+        "cm108:/dev/hidraw0:9",
+        "cm108:/dev/hidraw0:0",
+        "cm108:",
+        "cm108:hidraw0",
+        "cm108:0d8c",
+        "cm108:d8c:0012",
+        "cm108:0d8c:12",
+        "cm108:00d8c:0012",
+        "cm108:0d8c:00012",
+        "cm108:+d8c:0012",
+        "cm108:0d8g:0012",
+        "cm108:0d8c:zzzz",
+        "cm108:0d8c:0012:0",
+        "cm108:0d8c:0012:9",
+        "cm108:0d8c:0012:x",
+        "cm108:0d8c:0012:3:4",
+        "cm108:0d8c:0012:",
+        "vox:x",
+        "gpio:4",
+    ] {
         assert!(PttSpec::parse(bad).is_err(), "{bad}");
     }
+    assert!(PttSpec::parse("cm108:0d8c:12").is_err_and(|e| e.contains("VID and PID as 4-digit hex")));
+}
+
+#[test]
+fn cm108_usb_id_that_is_not_plugged_in() {
+    let e = PttSpec::parse("cm108:ffff:fffe").unwrap().open().err().expect("no such device");
+    assert!(e.to_string().contains("ffff:fffe"), "{e}");
 }
 
 #[test]
@@ -27,15 +71,10 @@ fn cm108_reports() {
     assert_eq!(cm108_report(3, false), [0, 0, 0, 4, 0]);
     assert_eq!(cm108_report(1, true), [0, 0, 1, 1, 0]);
     let f = Scratch::new("cm108");
-    #[cfg(not(target_os = "macos"))]
-    {
-        let mut c = Cm108::open(f.path(), 3).unwrap();
-        c.set(true).unwrap();
-        c.set(false).unwrap();
-        assert_eq!(std::fs::read(&f.0).unwrap(), [[0, 0, 0, 4, 0], [0, 0, 4, 4, 0], [0, 0, 0, 4, 0]].concat());
-    }
-    #[cfg(target_os = "macos")]
-    assert!(matches!(Cm108::open(f.path(), 3), Err(e) if e.kind() == io::ErrorKind::Unsupported));
+    let mut c = Cm108::open(f.path(), 3).unwrap();
+    c.set(true).unwrap();
+    c.set(false).unwrap();
+    assert_eq!(std::fs::read(&f.0).unwrap(), [[0, 0, 0, 4, 0], [0, 0, 4, 4, 0], [0, 0, 0, 4, 0]].concat());
 }
 
 struct Scratch(std::path::PathBuf);
@@ -61,19 +100,40 @@ impl Drop for Scratch {
 #[test]
 fn serial_refuses_non_serial_devices() {
     assert!(Serial::open("/dev/null", libc::TIOCM_RTS).is_err());
+}
+
+fn with_pty(f: impl FnOnce(&str)) {
     let (mut m, mut s) = (0, 0);
     let mut name = [0 as libc::c_char; 64];
     assert_eq!(
         unsafe { libc::openpty(&mut m, &mut s, name.as_mut_ptr(), std::ptr::null_mut(), std::ptr::null_mut()) },
         0
     );
-    let path = unsafe { std::ffi::CStr::from_ptr(name.as_ptr()) }.to_str().unwrap().to_string();
-    let e = Serial::open(&path, libc::TIOCM_RTS).err().expect("a pty has no modem lines");
-    assert_eq!(e.raw_os_error(), Some(libc::ENOTTY));
+    f(unsafe { std::ffi::CStr::from_ptr(name.as_ptr()) }.to_str().unwrap());
     unsafe {
         libc::close(m);
         libc::close(s);
     }
+}
+
+#[cfg(not(target_os = "freebsd"))]
+#[test]
+fn serial_refuses_ptys() {
+    with_pty(|path| {
+        let e = Serial::open(path, libc::TIOCM_RTS).err().expect("a pty has no modem lines");
+        assert_eq!(e.raw_os_error(), Some(libc::ENOTTY));
+    });
+}
+
+#[cfg(target_os = "freebsd")]
+#[test]
+fn serial_on_a_pty_fails_when_the_line_does_not_follow() {
+    with_pty(|path| {
+        let mut p = Serial::open(path, libc::TIOCM_RTS).unwrap();
+        let e = p.set(true).unwrap_err();
+        assert!(e.to_string().contains("modem line did not follow"), "{e}");
+        p.set(false).unwrap();
+    });
 }
 
 fn fake_rigctld(reply: impl Into<String>) -> (String, Arc<Mutex<Vec<String>>>) {
@@ -187,9 +247,13 @@ fn ptt_keys_and_holds_the_tail() {
     assert!(states(&rec).is_empty());
     let t0 = Instant::now();
     feed(&mut c, true, 200);
+    assert!(c.keyed());
+    c.set(false).unwrap();
+    assert!(c.keyed(), "PTT remains asserted during the tail");
     let t1 = Instant::now();
     feed_until(&mut c, false, |_| states(&rec).len() >= 2);
     feed(&mut c, false, 100);
+    assert!(!c.keyed());
     let v = rec.0.lock().unwrap().clone();
     assert_eq!(v.iter().map(|e| e.1).collect::<Vec<_>>(), [true, false]);
     assert!(v[0].0 - t0 < Duration::from_millis(200));
@@ -241,6 +305,13 @@ fn ptt_released_when_the_audio_loop_stalls() {
     wait_until(|| states(&rec).len() >= 4);
     feed(&mut c, false, 150);
     assert_eq!(states(&rec), [true, false, true, false]);
+}
+
+#[test]
+fn ptt_released_on_exit_even_when_unkeyed() {
+    let (c, rec, _) = ctl(T);
+    drop(c);
+    assert_eq!(states(&rec), [false]);
 }
 
 #[test]
@@ -312,7 +383,7 @@ fn radio_mode_needs_explicit_opt_in() {
     assert!(e.contains("--port must be below 65535"), "{e}");
 }
 
-#[cfg(feature = "pulse")]
+#[cfg(pulse)]
 #[test]
 fn radio_mode_refuses_a_default_sink_before_contacting_the_sound_server() {
     for sink in ["@DEFAULT_SINK@", "default"] {
@@ -585,6 +656,9 @@ fn bad_option_values_are_refused() {
         (&["--hf", "1000"], "bad bandwidth 1000"),
         (&["--hf", "500", "--fm", "narrow"], "--hf and --fm cannot both be given"),
         (&["--fm", "wide", "--hf", "2300"], "--hf and --fm cannot both be given"),
+        (&["--tx-buffer-ms", "29"], "--tx-buffer-ms must be 30..500"),
+        (&["--tx-buffer-ms", "501"], "--tx-buffer-ms must be 30..500"),
+        (&["--tx-buffer-ms", "-5"], "--tx-buffer-ms: invalid digit"),
     ] {
         let (c, e) = run(extra);
         assert_eq!(c, 2, "{extra:?}: {e}");

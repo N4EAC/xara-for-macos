@@ -3,7 +3,7 @@ use xara_arq::compression::Compression;
 use xara_arq::host::{HostEvent, LinkBw};
 use xara_arq::kiss;
 use xara_arq::time::{SECOND, Time};
-use xara_host::command::{Command, Comp, DRIVE_MIN_DB, Drive, Invalid};
+use xara_host::command::{Command, Comp, DRIVE_MAX_DB, DRIVE_MIN_DB, Drive, Invalid};
 use xara_host::kiss::KissServer;
 use xara_host::response::{LinkWidth, Response};
 use xara_host::server::{Host, Input};
@@ -44,6 +44,7 @@ pub struct Tnc<M: Modem> {
     saved_retries: u32,
     busy: bool,
     telemetry: Option<Telemetry>,
+    external_output_meter: bool,
     tune: Option<(Tuner, Time)>,
     restart: bool,
     restart_at: Option<Time>,
@@ -64,6 +65,7 @@ impl<M: Modem> Tnc<M> {
             saved_retries: 0,
             busy: false,
             telemetry: None,
+            external_output_meter: false,
             tune: None,
             restart: false,
             restart_at: None,
@@ -87,6 +89,29 @@ impl<M: Modem> Tnc<M> {
 
     pub fn keyed(&self) -> bool {
         self.keyed
+    }
+
+    pub fn set_tx_latency(&mut self, t: Time, lag: Time) {
+        self.station.set_tx_latency(t, lag);
+    }
+
+    pub fn use_output_meter(&mut self) {
+        self.external_output_meter = true;
+    }
+
+    pub fn publish_output(&self, samples: &[i16], ptt: bool) {
+        if let Some(t) = &self.telemetry {
+            t.update(|s| {
+                s.ptt = ptt;
+                for &sample in samples {
+                    s.tx.feed(&[crate::audio::sample(sample)]);
+                }
+            });
+        }
+    }
+
+    pub fn drive_saved(&self, error: Option<&str>) {
+        self.controlled(error.map_or_else(|| "save drive".into(), |e| format!("save drive: {e}")), error.is_none());
     }
 
     pub fn set_echo(&mut self, on: bool) {
@@ -218,7 +243,7 @@ impl<M: Modem> Tnc<M> {
     }
 
     fn set_drive(&mut self, db: f64) -> f64 {
-        let db = db.clamp(DRIVE_MIN_DB, 0.0).round_ties_even();
+        let db = db.clamp(DRIVE_MIN_DB, DRIVE_MAX_DB).round_ties_even();
         self.station.set_drive(db);
         db
     }
@@ -280,8 +305,13 @@ impl<M: Modem> Tnc<M> {
         t.update(|s| {
             s.now = now;
             s.rx.feed(input);
-            s.tx.feed(output);
-            (s.ptt, s.busy, s.link, s.retries, s.buffered) = (ptt, busy, link, retries, buffered);
+            if !self.external_output_meter {
+                s.tx.feed(output);
+            }
+            if !self.external_output_meter {
+                s.ptt = ptt;
+            }
+            (s.busy, s.link, s.retries, s.buffered) = (busy, link, retries, buffered);
             (s.tuning, s.tune_left, s.drive_db) = (tuning, tune_left, drive_db);
             if s.calls != cfg.host().mycalls {
                 s.calls = cfg.host().mycalls.clone();
@@ -290,8 +320,8 @@ impl<M: Modem> Tnc<M> {
     }
 
     fn echo(&self, s: &str) {
-        if self.echo {
-            eprintln!("{:10.3} {s}", secs(self.station.now()));
+        if self.echo || crate::log::to_file() {
+            crate::log::line(self.echo, format_args!("{:10.3} {s}", secs(self.station.now())));
         }
     }
 
@@ -312,10 +342,16 @@ impl<M: Modem> Tnc<M> {
         self.host.line(&s);
         let Some(t) = &self.telemetry else { return };
         match r {
-            Response::Connected { .. } => t.update(|s| s.received_bytes = 0),
+            Response::Connected { .. } => t.update(|s| {
+                s.received_bytes = 0;
+                s.connected = true;
+            }),
             Response::Sn(sn) => t.update(|s| s.sn = Some(sn)),
             Response::Bitrate { level, bps, tx } => t.update(|s| s.bitrate = Some(Bitrate { level, bps, tx })),
-            Response::Disconnected => t.update(|s| (s.sn, s.bitrate) = (None, None)),
+            Response::Disconnected => t.update(|s| {
+                (s.sn, s.bitrate) = (None, None);
+                s.connected = false;
+            }),
             _ => {}
         }
         t.event(self.station.now(), Event::Host(r));

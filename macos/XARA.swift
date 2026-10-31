@@ -18,8 +18,80 @@ struct StationConfiguration: Codable {
     var text: String {
         let modeLine = mode.hasPrefix("hf") ? "hf=\(mode.dropFirst(2))" : "fm=\(mode.dropFirst(2))"
         var method = ptt
-        if ["rts", "dtr", "rigctld"].contains(ptt) { method += ":" + pttAddress }
+        if ["rts", "dtr", "rigctld", "cm108"].contains(ptt) { method += ":" + pttAddress }
         return "call=\(call)\n\(modeLine)\ncapture=\(input)\nplayback=\(output)\nptt=\(method)\nhost-ports=\(externalPorts == true ? "on" : "off")\nport=\(commandPort)\nkiss-port=\(kissPort)"
+    }
+}
+
+struct MacReleaseVersion: Equatable, Comparable {
+    let components: [Int]
+    let build: Int
+
+    init?(version: String, build: String) {
+        let parts = version.split(separator: ".", omittingEmptySubsequences: false)
+        guard parts.count == 3, parts.allSatisfy({ !$0.isEmpty && $0.allSatisfy({ $0.isASCII && $0.isNumber }) }),
+              !build.isEmpty, build.allSatisfy({ $0.isASCII && $0.isNumber }),
+              let build = Int(build), build > 0 else { return nil }
+        let numbers = parts.compactMap { Int($0) }
+        guard numbers.count == 3 else { return nil }
+        self.components = numbers; self.build = build
+    }
+
+    init?(tag: String) {
+        let pieces = tag.split(separator: "-", omittingEmptySubsequences: false)
+        guard pieces.count == 2, pieces[0].hasPrefix("v"), pieces[1].hasPrefix("macos.") else { return nil }
+        self.init(version: String(pieces[0].dropFirst()), build: String(pieces[1].dropFirst(6)))
+    }
+
+    static func < (lhs: Self, rhs: Self) -> Bool {
+        if lhs.components != rhs.components { return lhs.components.lexicographicallyPrecedes(rhs.components) }
+        return lhs.build < rhs.build
+    }
+
+    var description: String { components.map(String.init).joined(separator: ".") + " (macOS build \(build))" }
+}
+
+struct MacReleaseCheck {
+    static let releasesURL = URL(string: "https://github.com/N4EAC/xara-for-macos/releases")!
+    static let latestAPI = URL(string: "https://api.github.com/repos/N4EAC/xara-for-macos/releases/latest")!
+
+    struct Release {
+        let tag: String
+        let version: MacReleaseVersion
+        var url: URL { URL(string: "https://github.com/N4EAC/xara-for-macos/releases/tag/" + tag)! }
+    }
+
+    static func decode(_ data: Data) throws -> Release {
+        guard data.count <= 1_048_576,
+              let object = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              object["draft"] as? Bool == false, object["prerelease"] as? Bool == false,
+              let tag = object["tag_name"] as? String, let version = MacReleaseVersion(tag: tag) else {
+            throw NSError(domain: "XARA.Update", code: 1, userInfo: [NSLocalizedDescriptionKey: "GitHub did not return a supported public macOS release."])
+        }
+        return Release(tag: tag, version: version)
+    }
+
+    static func latest(_ completion: @escaping (Result<Release, Error>) -> Void) {
+        let config = URLSessionConfiguration.ephemeral
+        config.urlCache = nil; config.httpCookieStorage = nil; config.urlCredentialStorage = nil
+        config.timeoutIntervalForRequest = 15; config.timeoutIntervalForResource = 20
+        let session = URLSession(configuration: config)
+        var request = URLRequest(url: latestAPI)
+        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        request.setValue("XARA-macOS", forHTTPHeaderField: "User-Agent")
+        session.dataTask(with: request) { data, response, error in
+            defer { session.finishTasksAndInvalidate() }
+            let result = Result<Release, Error> {
+                if let error { throw error }
+                guard let response = response as? HTTPURLResponse, response.statusCode == 200,
+                      response.url?.scheme == "https", response.url?.host == "api.github.com",
+                      response.url?.path.lowercased() == latestAPI.path.lowercased(), let data else {
+                    throw NSError(domain: "XARA.Update", code: 2, userInfo: [NSLocalizedDescriptionKey: "Couldn’t read the latest N4EAC GitHub release. Check your Internet connection or open GitHub Releases."])
+                }
+                return try decode(data)
+            }
+            DispatchQueue.main.async { completion(result) }
+        }.resume()
     }
 }
 
@@ -30,6 +102,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     var engineRunning = false
     var fitOnFirstTelemetry = true
     var timer: Timer?
+    var checkingRelease = false
     var closing = false
     var configuration = StationConfiguration()
     let defaults = UserDefaults.standard
@@ -53,6 +126,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         let browserItem = modemMenu.addItem(withTitle: "Open in Browser", action: #selector(openInBrowser), keyEquivalent: "b")
         browserItem.target = self
         browserItem.keyEquivalentModifierMask = [.command, .shift]
+        let updateItem = NSMenuItem(); menu.addItem(updateItem)
+        let updateMenu = NSMenu(title: "Update"); updateItem.submenu = updateMenu
+        updateMenu.addItem(withTitle: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
+        updateMenu.addItem(withTitle: "GitHub Releases…", action: #selector(showReleases), keyEquivalent: "")
         let edit = NSMenuItem(); menu.addItem(edit)
         let editMenu = NSMenu(title: "Edit"); edit.submenu = editMenu
         for (title, selector, key) in [("Cut", "cut:", "x"), ("Copy", "copy:", "c"), ("Paste", "paste:", "v"), ("Select All", "selectAll:", "a")] {
@@ -135,15 +212,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         let (input, inputs) = deviceMenu("capture", current.input); add("Radio audio input", input)
         let (output, outputs) = deviceMenu("playback", current.output); add("Radio audio output", output)
         let ptt = NSPopUpButton()
-        let methods = [("off", "Receive only · transmit disabled"), ("rts", "Serial RTS"), ("dtr", "Serial DTR"), ("rigctld", "Hamlib rigctld"), ("vox", "VOX")]
+        let methods = [("off", "Receive only · transmit disabled"), ("rts", "Serial RTS"), ("dtr", "Serial DTR"), ("rigctld", "Hamlib rigctld"), ("cm108", "CM108 USB HID"), ("vox", "VOX")]
         ptt.addItems(withTitles: methods.map { $0.1 }); ptt.selectItem(at: methods.firstIndex { $0.0 == current.ptt } ?? 0); add("PTT method", ptt)
-        let address = NSTextField(string: current.pttAddress); address.placeholderString = "/dev/cu.usbserial… or 127.0.0.1:4532"; add("PTT device / host", address)
+        let address = NSTextField(string: current.pttAddress); address.placeholderString = "Serial path, rigctld host:port, or CM108 VID:PID[:GPIO]"; add("PTT device / host", address)
         let ports = NSButton(checkboxWithTitle: "Enable command/data and KISS ports", target: nil, action: nil)
         ports.state = current.externalPorts == true ? .on : .off
         add("External software", ports)
         let port = NSTextField(string: current.commandPort); add("Command port", port)
         let kiss = NSTextField(string: current.kissPort); kiss.placeholderString = "8100 or off"; add("KISS port", kiss)
-        let note = NSTextField(wrappingLabelWithString: "Data port = command port + 1. Ports are local and unauthenticated; enable only for trusted radio software.\nSaved locally: station, audio, PTT, and port settings. Received data stays in memory unless exported.")
+        let note = NSTextField(wrappingLabelWithString: "Data port = command port + 1. Ports are local and unauthenticated; enable only for trusted radio software.\nSaved locally: station, audio, PTT, and port settings. TX drive is remembered automatically. Received data stays in memory unless exported.")
         note.font = .monospacedSystemFont(ofSize: 11, weight: .regular); note.textColor = .secondaryLabelColor
         note.frame = NSRect(x: 0, y: 0, width: 520, height: 74); form.addSubview(note)
         dialog.accessoryView = form
@@ -267,6 +344,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         for child in view.subviews { applyMonospace(child) }
     }
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        if menuItem.action == #selector(checkForUpdates) { return !checkingRelease }
         if menuItem.action == #selector(openInBrowser) { return engineRunning && modemURL != nil }
         if menuItem.action == #selector(fitToPanels) { return engineRunning && modemURL != nil && !window.styleMask.contains(.fullScreen) }
         return true
@@ -315,8 +393,61 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         }
     }
     @objc func reload() { if let modemURL { web.load(URLRequest(url: modemURL)) } }
+    @objc func showReleases() {
+        NSWorkspace.shared.open(MacReleaseCheck.releasesURL)
+    }
+
+    @objc func checkForUpdates() {
+        guard !checkingRelease else { return }
+        guard let info = Bundle.main.infoDictionary,
+              let version = info["CFBundleShortVersionString"] as? String,
+              let build = info["CFBundleVersion"] as? String,
+              let installed = MacReleaseVersion(version: version, build: build) else {
+            alert("Couldn’t check updates", "The installed app has no valid version/build information."); return
+        }
+        checkingRelease = true
+        MacReleaseCheck.latest { [weak self] result in
+            guard let self else { return }
+            self.checkingRelease = false
+            guard !self.closing else { return }
+            switch result {
+            case .failure(let error): self.alert("Couldn’t check updates", error.localizedDescription)
+            case .success(let release):
+                if release.version == installed {
+                    self.alert("Check for Updates", "Xara UI for Mac by N4EAC is up-to-date.")
+                } else if release.version < installed {
+                    self.alert("Check for Updates", "No newer GitHub release is available.\nInstalled: \(installed.description)\nLatest published: \(release.version.description)")
+                } else {
+                    let panel = NSAlert()
+                    panel.messageText = "A newer Xara UI for Mac is available"
+                    panel.informativeText = "Installed: \(installed.description)\nGitHub: \(release.version.description)"
+                    panel.addButton(withTitle: "Open GitHub Release")
+                    panel.addButton(withTitle: "Later")
+                    self.applyMonospace(panel.window.contentView)
+                    if panel.runModal() == .alertFirstButtonReturn { NSWorkspace.shared.open(release.url) }
+                }
+            }
+        }
+    }
+
+    func aboutPanel() -> NSAlert {
+        let panel = NSAlert()
+        panel.messageText = "Xara modem for Mac"
+        let info = Bundle.main.infoDictionary ?? [:]
+        let version = info["CFBundleShortVersionString"] as? String ?? "0.1.3"
+        let build = info["CFBundleVersion"] as? String ?? "3"
+        panel.informativeText = "By N4EAC, Eduardo\nXARA \(version) · macOS build \(build)\nOriginal modem by x0rro"
+        panel.addButton(withTitle: "GitHub Releases")
+        panel.addButton(withTitle: "Original XARA")
+        panel.addButton(withTitle: "Close")
+        applyMonospace(panel.window.contentView)
+        return panel
+    }
     @objc func about() {
-        NSApp.orderFrontStandardAboutPanel(options: [.applicationName: "XARA", .applicationVersion: "0.1.1 (macOS build 2)"])
+        let panel = aboutPanel()
+        let result = panel.runModal()
+        if result == .alertFirstButtonReturn { showReleases() }
+        if result == .alertSecondButtonReturn { NSWorkspace.shared.open(URL(string: "https://github.com/x0rro/xara")!) }
     }
     func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         guard let url = action.request.url else { decisionHandler(.cancel); return }

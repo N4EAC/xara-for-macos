@@ -157,7 +157,7 @@ impl Host {
 
 impl Drop for Host {
     fn drop(&mut self) {
-        self.hold.set(false);
+        self.shutdown();
     }
 }
 

@@ -229,3 +229,13 @@ fn disabled_host_has_no_tcp_endpoints_or_clients() {
     assert!(matches!(h.input.try_recv(), Err(std::sync::mpsc::TryRecvError::Disconnected)));
     h.shutdown();
 }
+
+#[test]
+fn dropping_host_releases_both_ports() {
+    let host = Host::bind("127.0.0.1", 0).unwrap();
+    let addresses = [host.cmd_addr, host.data_addr];
+    drop(host);
+    for addr in addresses {
+        let _listener = std::net::TcpListener::bind(addr).unwrap();
+    }
+}

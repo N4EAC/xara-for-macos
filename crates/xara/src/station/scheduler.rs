@@ -12,6 +12,7 @@ pub enum Kind {
 
 struct Burst {
     samples: Vec<f64>,
+    tail: usize,
     pos: usize,
     earliest: Time,
     keyed: Vec<Report>,
@@ -36,17 +37,22 @@ pub struct TxScheduler {
     hold_until: Time,
     ptt: bool,
     latency: Time,
+    lag: Time,
     unkey: Option<Unkey>,
     tune: Option<(Vec<f64>, usize)>,
 }
 
 impl TxScheduler {
-    pub fn new(latency: Time) -> Self {
-        Self { latency, ..Self::default() }
+    pub fn new(latency: Time, lag: Time) -> Self {
+        Self { latency, lag, ..Self::default() }
     }
 
     pub fn latency(&self) -> Time {
         self.latency
+    }
+
+    pub fn set_latency(&mut self, latency: Time, lag: Time) {
+        (self.latency, self.lag) = (latency, lag);
     }
 
     pub fn ptt(&self) -> bool {
@@ -93,8 +99,8 @@ impl TxScheduler {
         if !self.bursts.is_empty() || (self.ptt && self.unkey.is_none()) { now } else { self.after_hold(now) }
     }
 
-    pub fn push(&mut self, samples: Vec<f64>, earliest: Time, keyed: Vec<Report>, kind: Kind) {
-        self.bursts.push_back(Burst { samples, pos: 0, earliest, keyed, kind });
+    pub fn push(&mut self, samples: Vec<f64>, tail: usize, earliest: Time, keyed: Vec<Report>, kind: Kind) {
+        self.bursts.push_back(Burst { samples, tail, pos: 0, earliest, keyed, kind });
     }
 
     pub fn key(&mut self, reports: &mut VecDeque<Report>) {
@@ -113,11 +119,12 @@ impl TxScheduler {
     }
 
     fn unkey_at(&mut self, end: Time, reports: &mut VecDeque<Report>, mark: usize) {
-        if self.latency == 0 {
+        let hold = self.latency - self.lag;
+        if hold <= 0 {
             self.ptt = false;
             reports.insert(mark, Report::Ptt(false));
         } else {
-            self.unkey = Some(Unkey { at: end + self.latency, ready: mark });
+            self.unkey = Some(Unkey { at: end + hold, ready: mark });
         }
     }
 
@@ -153,14 +160,15 @@ impl TxScheduler {
         if b.pos == 0 {
             reports.extend(b.keyed.drain(..));
         }
-        let sample = b.samples[b.pos];
+        let sample = b.samples.get(b.pos).copied().unwrap_or(0.0);
+        let len = b.samples.len() + b.tail;
         b.pos += 1;
-        if b.pos < b.samples.len() {
+        if b.pos < len {
             return Next::Sample(sample);
         }
         let b = self.bursts.pop_front().unwrap();
         let end = t + 1;
-        Next::Last { sample, kind: b.kind, start: end - b.samples.len() as Time, end }
+        Next::Last { sample, kind: b.kind, start: end - len as Time, end }
     }
 
     pub fn release(&mut self, end: Time, reports: &mut VecDeque<Report>, mark: usize) {

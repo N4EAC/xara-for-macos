@@ -13,6 +13,7 @@ pub enum Comp {
 }
 
 pub const DRIVE_MIN_DB: f64 = -30.0;
+pub const DRIVE_MAX_DB: f64 = 10.0;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Drive {
@@ -125,7 +126,7 @@ fn vb_radix(s: &str, radix: u32, short: usize) -> Option<f64> {
 fn drive(rest: &str) -> Drive {
     match vb_num(rest) {
         None => Drive::NotNumeric,
-        Some(v) if (DRIVE_MIN_DB..=0.0).contains(&v) => Drive::Db(v.round_ties_even() as i32),
+        Some(v) if (DRIVE_MIN_DB..=DRIVE_MAX_DB).contains(&v) => Drive::Db(v.round_ties_even() as i32),
         Some(_) => Drive::OutOfRange,
     }
 }

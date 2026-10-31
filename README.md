@@ -15,7 +15,7 @@ Based on **[XARA by x0rro](https://github.com/x0rro/xara)**. The original projec
 | Processor | Apple Silicon (arm64; M1 or newer) |
 | Operating system | macOS 12 Monterey or newer |
 | Intel Macs | Not supported by the downloadable ZIP; it is not a Universal build |
-| Modem version | XARA 0.1.1; macOS application build 2 |
+| Modem version | XARA 0.1.3; macOS application build 3 |
 | Audio | Native Core Audio; 48 kHz, signed 16-bit mono PCM internally |
 | Signing | Ad-hoc signed; not Developer ID signed or notarized |
 
@@ -26,7 +26,7 @@ Rust and Xcode are only needed to build from source. The downloadable app contai
 1. Download **XARA-macOS-arm64.zip** from [Releases](https://github.com/N4EAC/xara-for-macos/releases/latest), unzip it, and move **XARA.app** to Applications.
 2. Open XARA and grant microphone access when prompted. This permission also covers audio received through a USB radio interface.
 3. Open **Modem → Station & Radio…** (⌘,) and enter your callsign, select HF bandwidth or FM mode, and choose your radio's audio input and output. The **Setup** tab contains station, audio, and timing settings.
-4. Start in receive-only mode. To transmit, explicitly select the radio audio devices and configure serial RTS/DTR, Hamlib rigctld, or VOX PTT. Check audio levels and PTT timing with your radio before an on-air session. CM108 HID PTT is Linux-only.
+4. Start in receive-only mode. To transmit, explicitly select the radio audio devices and configure serial RTS/DTR, CM108 USB HID, Hamlib rigctld, or VOX PTT. Check audio levels and PTT timing with your radio before an on-air session. For CM108 USB PTT, enter `VID:PID[:GPIO]` (four hexadecimal digits per USB ID). Device-path hidraw syntax remains Linux/FreeBSD-only.
 5. If using external radio software, enable **External software → Enable command/data and KISS ports** in Station & Radio, then connect to `127.0.0.1`: command port **8300**, data port **8301**, or KISS TCP **8100**. These ports are off by default, are unauthenticated for compatibility, and can be changed in Station & Radio if already in use. Enable them only for trusted local radio software.
 
 Save and restart applies engine settings while idle. Settings are stored in `~/Library/Application Support/XARA` and macOS app preferences.
@@ -37,7 +37,7 @@ Save and restart applies engine settings while idle. Settings are stored in `~/L
 
 The macOS app opens one authenticated UI listener on `127.0.0.1` using an automatically assigned port. Its telemetry, received-data previews, waterfall, and controls require the session token. Command/data and KISS listeners are disabled until explicitly enabled in Station & Radio. They remain loopback-only and are unauthenticated for compatibility with radio software. Older saved configurations also default to these ports disabled after this update.
 
-There is no analytics, automatic update checker, cloud service, or automatic Internet request in the app code. The only configurable outbound TCP connection is Hamlib rigctld PTT, used when selected; its default address is `127.0.0.1:4532`. A remote rigctld address connects to the host you explicitly configure.
+There is no analytics, background update check, cloud service, or automatic Internet request in the app code. The modem engine’s only configurable outbound TCP connection is Hamlib rigctld PTT, used when selected; its default address is `127.0.0.1:4532`. **Update → Check for Updates…** makes a user-requested HTTPS metadata request to the N4EAC GitHub releases API. It sends no callsign, audio, payload, or device settings. A remote rigctld address connects to the host you explicitly configure.
 
 Saving settings stores callsign, mode, audio-device identifiers, drive/timing, and native PTT/port preferences locally. The app settings directory is owner-only (`0700`) and the settings file is owner-only (`0600`). Window geometry is also saved by macOS. Received payload previews, telemetry history, and audio buffers remain in memory; they are not automatically logged or uploaded. Export writes monitor text only after a user action; the native app shows a save dialog. The separate command-line modem records audio only when explicitly given `--record`.
 
@@ -51,13 +51,17 @@ The embedded web view uses a nonpersistent website data store. An external brows
 - Setup and Diagnostics tabs, including reported modem/protocol versions, audio backend, meter limits, and waterfall parameters.
 - HF bandwidths of 500, 2300, and 2750 Hz; FM narrow and wide modes; local command/data and KISS interfaces.
 
+TX drive ranges from **−30 to +10 dB**. The embedded app saves the last accepted drive automatically, off the DSP thread, and restores it after engine restart or relaunch. The main tab displays Applied/Saved feedback or a save error. Positive drive is digital gain relative to the modem's nominal waveform level, not RF gain or power; full-scale clipping is visible in TX CLIP. The standalone CLI retains upstream's save-on-exit drive behavior when a state directory is configured.
+
+The BPS readout is the latest modem-reported frame bitrate, not measured payload throughput. TX audio meters use the PCM written to the audio device after muting, delay, and rate matching. The TX/PTT indicators follow the PTT controller assertion, including its tail and watchdog release; they are not measurements of RF output. S/N comes from decoded frames, AFC from the HF receiver estimator (unavailable for FM), and clipping counts identify digital full-scale samples. Calling/answering states are not marked as established connections.
+
 The received-byte total accumulates decoded payload bytes for each radio connection and resets at the next connection. Clearing the data monitor does not reset that counter. Its text preview shows up to 256 bytes per received payload. Protocol event LEDs remain visible briefly for readability; TX follows PTT. The Live indicator reports the UI telemetry connection, not a radio connection. Unavailable or stale instrument readings are cleared.
 
 ![XARA diagnostics](docs/images/xara-diagnostics.png)
 
 ## Build from source
 
-Install [Rust](https://www.rust-lang.org/tools/install) (stable) and Xcode Command Line Tools (`xcode-select --install`), then:
+Install [Rust](https://www.rust-lang.org/tools/install) (stable; upstream pins 1.99.1 in `.rust-version`) and Xcode Command Line Tools (`xcode-select --install`), then:
 
 ```sh
 git clone https://github.com/N4EAC/xara-for-macos.git
@@ -77,6 +81,16 @@ ditto -c -k --sequesterRsrc --keepParent \
 
 Use that asset name only for an arm64 build. Higher registered speeds require a source build with the upstream `registered` feature and a registered copy of VARA; the standard app build does not enable it. See the [CLI guide](docs/cli.md) for standalone builds and protocol options.
 
+## Upstream alignment
+
+The modem PHY/ARQ crates match upstream 0.1.3, including the callsign/SSID fix, DSP warm-up, audio resampling/buffering, Core Audio backend, and revised latency/PTT-tail model. The native app uses that audio/latency path while preserving its authenticated UI, owner-only settings, and default-disabled external-software ports. Existing encoded Core Audio device selections remain compatible.
+
+The original CLI source retains explicitly requested `--log`/`--record`, digipeating, and optional registered/experimental `(tr)uSDX` features. Recording/log-file controls, digipeater configuration, registered speeds, and the experimental `(tr)uSDX` transport are not exposed or enabled by the standard native application. The optional upstream launchd example is not installed by the app build. See [UPSTREAM_REVIEW.md](UPSTREAM_REVIEW.md) for the comparison and telemetry mapping.
+
+**Update → Check for Updates…** compares the app version and build with this repository’s latest published macOS release. Matching versions display “Xara UI for Mac by N4EAC is up-to-date.” A newer release offers its GitHub page. The check does not download, install, rebuild, or restart anything; using the app and checking for updates require no Rust or Xcode installation. Those tools are required only for building from source.
+
+The current app and release are 0.1.3 / macOS build 3.
+
 ## Validation
 
 ```sh
@@ -89,6 +103,6 @@ Embedded tests exercise the DSP loop with simulated PCM, authenticated UI access
 
 ## Credits and license
 
-Original XARA: **[x0rro/xara](https://github.com/x0rro/xara)** by **[x0rro](https://github.com/x0rro)**, based here on commit [`2e96fcd`](https://github.com/x0rro/xara/commit/2e96fcd1563c765a0f5731dae9cc9465c4b86ac6) (0.1.1). Upstream reports compatibility testing against VARA HF 4.9.0 and FM 4.4.0. This macOS distribution is not affiliated with the VARA developer.
+Original XARA: **[x0rro/xara](https://github.com/x0rro/xara)** by **[x0rro](https://github.com/x0rro)**, updated here through commit [`09a9201`](https://github.com/x0rro/xara/commit/09a9201381b00499ada9d9c816bd05bb8f175705) (0.1.3). The upstream Core Audio work credits NR5P. The native application is maintained by **N4EAC, Eduardo**; its About menu links to the [macOS releases](https://github.com/N4EAC/xara-for-macos/releases). Upstream reports compatibility testing against VARA HF 4.9.0 and FM 4.4.0. This macOS distribution is not affiliated with the VARA developer.
 
 Source is available under the [MIT license](LICENSE). Copyright © 2026 x0rro; original notices are preserved.

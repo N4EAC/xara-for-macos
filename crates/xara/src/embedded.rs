@@ -1,4 +1,6 @@
 //! In-process macOS modem lifecycle and its narrow C ABI. No child processes.
+use crate::audio::ratematch::TxBuffer;
+use crate::audio::txpath::TxPath;
 use crate::audio::{self, Audio};
 use crate::ptt::{PttCtl, PttSpec, PttTiming};
 use crate::station::{self, Modem, Options};
@@ -6,9 +8,9 @@ use crate::tnc::Tnc;
 use std::ffi::{CStr, c_char};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Condvar, Mutex};
 use std::thread::{self, JoinHandle};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use xara_arq::{fm, hf};
 use xara_host::kiss::KissServer;
 use xara_host::server::Host;
@@ -106,8 +108,8 @@ impl Config {
         if self.capture.is_empty() || self.playback.is_empty() {
             return Err("Select audio input and output.".into());
         }
-        if !self.drive.is_finite() || !(-30.0..=0.0).contains(&self.drive) {
-            return Err("TX drive must be -30 to 0 dB.".into());
+        if !self.drive.is_finite() || !(-30.0..=10.0).contains(&self.drive) {
+            return Err("TX drive must be -30 to +10 dB.".into());
         }
         if self.timing.lead > Duration::from_secs(1)
             || self.timing.tail > Duration::from_secs(1)
@@ -123,10 +125,13 @@ impl Config {
         {
             return Err("Command/data and KISS ports must be distinct, nonzero ports.".into());
         }
-        if matches!(self.ptt, Some(PttSpec::Cm108 { .. })) {
-            return Err("Use serial RTS/DTR, rigctld, or VOX on macOS.".into());
+        if matches!(self.ptt, Some(PttSpec::Cm108 { .. } | PttSpec::Trusdx)) {
+            return Err("Use serial RTS/DTR, CM108 USB, rigctld, or VOX in this app.".into());
         }
-        audio::coreaudio::check(&self.playback, self.ptt.is_some()).map_err(|e| e.to_string())
+        if self.ptt.is_some() {
+            audio::coreaudio::check(&decode_device(&self.playback)?, true).map_err(|e| e.to_string())?;
+        }
+        Ok(())
     }
 
     fn with_saved(&self, saved: &Pairs) -> Result<Self, String> {
@@ -184,9 +189,27 @@ fn update(status: &Mutex<Status>, state: i32, text: String) {
     *lock(status) = Status { state, text };
 }
 
+fn encode_device(uid: &str) -> String {
+    format!("coreaudio:{}", uid.as_bytes().iter().map(|b| format!("{b:02x}")).collect::<String>())
+}
+
+fn decode_device(value: &str) -> Result<String, String> {
+    if value == "default" {
+        return Ok(value.into());
+    }
+    let hex = value.strip_prefix("coreaudio:").ok_or("Select a Core Audio device.")?;
+    if hex.is_empty() || hex.len() % 2 != 0 || hex.len() > 2048 || !hex.bytes().all(|b| b.is_ascii_hexdigit()) {
+        return Err("Invalid Core Audio device identifier.".into());
+    }
+    let bytes: Result<Vec<_>, _> = (0..hex.len()).step_by(2).map(|i| u8::from_str_radix(&hex[i..i + 2], 16)).collect();
+    String::from_utf8(bytes.map_err(|_| "Invalid device identifier.")?).map_err(|_| "Invalid device identifier.".into())
+}
+
 fn devices() -> std::io::Result<Devices> {
     let (capture, playback) = audio::coreaudio::list()?;
-    let map = |v: Vec<(String, String)>| v.into_iter().map(|(name, desc)| Device { name, desc }).collect();
+    let map = |v: Vec<(String, String)>| {
+        v.into_iter().map(|(name, desc)| Device { name: encode_device(&name), desc }).collect()
+    };
     Ok(Devices { backend: "coreaudio", capture: map(capture), playback: map(playback) })
 }
 
@@ -226,12 +249,23 @@ fn run(base: Config, dir: PathBuf, stop: Arc<AtomicBool>, status: Arc<Mutex<Stat
             validate: Box::new(move |saved| check.with_saved(saved).map(|_| ())),
             list: Box::new(devices),
         }));
-        let mut io =
-            audio::coreaudio::CoreAudio::open(&cfg.capture, &cfg.playback, cfg.ptt.is_some(), cfg.ptt.is_none())
-                .map_err(|e| e.to_string())?;
+        let capture = decode_device(&cfg.capture)?;
+        let mut io = if cfg.ptt.is_none() {
+            audio::coreaudio::CoreAudioIo::open_capture(&capture)
+        } else {
+            audio::coreaudio::CoreAudioIo::open(&capture, &decode_device(&cfg.playback)?, true, TxBuffer::default())
+        }
+        .map_err(|e| e.to_string())?;
+        let tx_path =
+            TxPath::new(audio::samples(cfg.timing.lead), TxBuffer::default(), io.path().map_err(|e| e.to_string())?);
+        let budget = tx_path.budget();
         let host = cfg.host()?;
-        // Queue buffers contribute 30 ms in addition to the configured PTT lead time.
-        let opts = Options { drive_db: cfg.drive, tx_latency: (cfg.timing.lead.as_millis() as i64 * 48) + 1440 };
+        let opts = Options {
+            drive_db: cfg.drive,
+            tx_latency: budget.total(),
+            rx_lag: budget.lag(),
+            ptt_tail: audio::samples(cfg.timing.tail) as i64,
+        };
         let result = if let Some(bw) = cfg.fm {
             let mut tnc = Tnc::new(station::fm::Station::new(fm::Config::new(bw, &cfg.call), opts), host);
             serve(
@@ -239,7 +273,7 @@ fn run(base: Config, dir: PathBuf, stop: Arc<AtomicBool>, status: Arc<Mutex<Stat
                 &mut io,
                 &mut tnc,
                 settings,
-                Workspace { stop: &stop, status: &status, token: &token, port: &mut ui_port },
+                Workspace { stop: &stop, status: &status, token: &token, port: &mut ui_port, tx_path: Some(tx_path) },
             )
         } else {
             let mut tnc = Tnc::new(station::hf::Station::new(hf::Config::new(cfg.hf, &cfg.call), opts), host);
@@ -248,7 +282,7 @@ fn run(base: Config, dir: PathBuf, stop: Arc<AtomicBool>, status: Arc<Mutex<Stat
                 &mut io,
                 &mut tnc,
                 settings,
-                Workspace { stop: &stop, status: &status, token: &token, port: &mut ui_port },
+                Workspace { stop: &stop, status: &status, token: &token, port: &mut ui_port, tx_path: Some(tx_path) },
             )
         }?;
         if !result || stop.load(Ordering::SeqCst) {
@@ -258,11 +292,73 @@ fn run(base: Config, dir: PathBuf, stop: Arc<AtomicBool>, status: Arc<Mutex<Stat
     }
 }
 
+#[derive(Default)]
+struct DriveState {
+    pending: Option<f64>,
+    stopping: bool,
+    result: Option<Result<(), String>>,
+}
+
+/// Coalesces drive updates off the DSP thread and flushes the last accepted value on shutdown.
+struct DriveSaver {
+    state: Arc<(Mutex<DriveState>, Condvar)>,
+    worker: Option<JoinHandle<()>>,
+}
+
+impl DriveSaver {
+    fn new(settings: Arc<Settings>) -> Result<Self, String> {
+        let state = Arc::new((Mutex::new(DriveState::default()), Condvar::new()));
+        let shared = state.clone();
+        let worker = thread::Builder::new()
+            .name("xara-drive-settings".into())
+            .spawn(move || {
+                let (mutex, changed) = &*shared;
+                loop {
+                    let state = lock(mutex);
+                    let mut state = changed
+                        .wait_while(state, |s| s.pending.is_none() && !s.stopping)
+                        .unwrap_or_else(std::sync::PoisonError::into_inner);
+                    let Some(db) = state.pending.take() else { return };
+                    drop(state);
+                    let result = settings.save(&vec![("drive-db".into(), db.to_string())]).map(|_| ());
+                    lock(mutex).result = Some(result);
+                }
+            })
+            .map_err(|e| e.to_string())?;
+        Ok(Self { state, worker: Some(worker) })
+    }
+
+    fn queue(&self, db: f64) {
+        lock(&self.state.0).pending = Some(db);
+        self.state.1.notify_one();
+    }
+
+    fn result(&self) -> Option<Result<(), String>> {
+        lock(&self.state.0).result.take()
+    }
+
+    fn finish(&mut self) -> Result<(), String> {
+        lock(&self.state.0).stopping = true;
+        self.state.1.notify_one();
+        if let Some(worker) = self.worker.take() {
+            worker.join().map_err(|_| "Drive settings worker failed.")?;
+        }
+        self.result().unwrap_or(Ok(()))
+    }
+}
+
+impl Drop for DriveSaver {
+    fn drop(&mut self) {
+        let _ = self.finish();
+    }
+}
+
 struct Workspace<'a> {
     stop: &'a Arc<AtomicBool>,
     status: &'a Mutex<Status>,
     token: &'a str,
     port: &'a mut u16,
+    tx_path: Option<TxPath>,
 }
 
 fn serve<M: Modem>(
@@ -272,8 +368,9 @@ fn serve<M: Modem>(
     settings: Arc<Settings>,
     workspace: Workspace<'_>,
 ) -> Result<bool, String> {
-    let Workspace { stop, status, token, port: ui_port } = workspace;
+    let Workspace { stop, status, token, port: ui_port, mut tx_path } = workspace;
     let mut ui = None;
+    let mut drive_saver = None;
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         if let Some(port) = cfg.kiss_port.filter(|_| cfg.host_ports) {
             tnc.set_kiss(KissServer::bind("127.0.0.1", port).map_err(|e| format!("KISS port: {e}"))?);
@@ -294,7 +391,7 @@ fn serve<M: Modem>(
                 control: true,
                 private: true,
                 token: Some(token.into()),
-                settings: Some(settings),
+                settings: Some(settings.clone()),
                 hosts: Vec::new(),
             },
         )
@@ -303,6 +400,10 @@ fn serve<M: Modem>(
         let url = format!("http://127.0.0.1:{}/?token={token}", *ui_port);
         ui = Some(server);
         tnc.set_telemetry(telemetry);
+        tnc.use_output_meter();
+        drive_saver = Some(DriveSaver::new(settings)?);
+        let saver = drive_saver.as_ref().unwrap();
+        let mut last_drive = cfg.drive;
         tnc.set_echo(false);
         let mut ptt = cfg
             .ptt
@@ -312,13 +413,24 @@ fn serve<M: Modem>(
             .map_err(|e| e.to_string())?;
         update(status, 2, url);
         let mut input = [0i16; audio::BLOCK];
-        let mut output = [0i16; audio::BLOCK];
         let mut rx = [0.0; audio::BLOCK];
         let mut tx = [0.0; audio::BLOCK];
-        let mut delay = audio::TxAudio::new(cfg.timing.lead.as_millis() as usize * 48);
+        let mut tx_path = tx_path.take().unwrap_or_else(|| {
+            TxPath::new(audio::samples(cfg.timing.lead), TxBuffer::default(), audio::Path::default())
+        });
+        if cfg.ptt.is_some() {
+            tx_path.start(io).map_err(|e| e.to_string())?;
+        }
+        let mut budget: Option<crate::audio::txpath::Budget> = None;
         let pumped = (|| {
             while !stop.load(Ordering::SeqCst) {
+                let reading = Instant::now();
                 io.read(&mut input).map_err(|e| e.to_string())?;
+                let waited = reading.elapsed();
+                let backlog = io.backlog().map_err(|e| e.to_string())?;
+                if let Some(b) = budget.take() {
+                    tnc.set_tx_latency(b.total(), b.lag());
+                }
                 for (x, sample) in rx.iter_mut().zip(input) {
                     *x = audio::sample(sample);
                 }
@@ -326,24 +438,32 @@ fn serve<M: Modem>(
                 let forced = cfg.ptt.is_none() || ptt.as_ref().is_some_and(PttCtl::forced_off);
                 tnc.force_ptt_off(forced);
                 tnc.process(&rx, &mut tx);
+                let drive = tnc.station().options().drive_db;
+                if drive != last_drive {
+                    saver.queue(drive);
+                    last_drive = drive;
+                }
+                if let Some(result) = saver.result() {
+                    tnc.drive_saved(result.as_ref().err().map(String::as_str));
+                }
                 let keyed = tnc.keyed();
                 if keyed {
                     if let Some(ptt) = &mut ptt {
                         ptt.set(true).map_err(|e| e.to_string())?;
                     }
                 }
-                delay.process(&mut tx, forced);
-                for (sample, x) in output.iter_mut().zip(tx) {
-                    *sample = audio::quantize(x);
-                }
                 if cfg.ptt.is_some() {
-                    io.write(&output).map_err(|e| e.to_string())?;
+                    budget = tx_path.send(io, &mut tx, forced, waited, backlog).map_err(|e| e.to_string())?;
+                } else {
+                    tx.fill(0.0);
                 }
                 if !keyed {
                     if let Some(ptt) = &mut ptt {
                         ptt.set(false).map_err(|e| e.to_string())?;
                     }
                 }
+                let asserted = ptt.as_ref().is_some_and(PttCtl::keyed);
+                tnc.publish_output(if cfg.ptt.is_some() { tx_path.sent() } else { &input[..0] }, asserted);
                 if tnc.restart_requested() {
                     return Ok(true);
                 }
@@ -355,13 +475,14 @@ fn serve<M: Modem>(
         }
         pumped
     }));
+    let saved = drive_saver.as_mut().map_or(Ok(()), DriveSaver::finish);
     CAN_CONFIGURE.store(true, Ordering::SeqCst);
     tnc.shutdown();
     if let Some(ui) = ui {
         ui.shutdown();
     }
     match result {
-        Ok(result) => result,
+        Ok(result) => result.and_then(|restart| saved.map(|_| restart)),
         Err(panic) => std::panic::resume_unwind(panic),
     }
 }
@@ -482,6 +603,15 @@ mod tests {
         fn write(&mut self, _: &[i16]) -> std::io::Result<()> {
             panic!("receive-only mode must never open or write audio output");
         }
+        fn queued(&mut self) -> std::io::Result<Option<audio::ratematch::Queue>> {
+            Ok(None)
+        }
+        fn backlog(&mut self) -> std::io::Result<Option<usize>> {
+            Ok(None)
+        }
+        fn path(&mut self) -> std::io::Result<audio::Path> {
+            Ok(audio::Path::default())
+        }
     }
 
     fn session(
@@ -511,7 +641,13 @@ mod tests {
                 &mut input,
                 &mut tnc,
                 settings,
-                Workspace { stop: &stop, status: &status, token: "embedded-test-token", port: &mut port },
+                Workspace {
+                    stop: &stop,
+                    status: &status,
+                    token: "embedded-test-token",
+                    port: &mut port,
+                    tx_path: None,
+                },
             )
             .unwrap();
             (restart, port)
@@ -560,6 +696,7 @@ mod tests {
             head.push(byte[0]);
         }
         assert!(String::from_utf8(head).unwrap().starts_with("HTTP/1.1 101"));
+        command(&mut socket, "DRIVE 10");
         command(&mut socket, "SETTINGS SAVE\ncall W2AW");
         command(&mut socket, "RESTART");
         let until = Instant::now() + Duration::from_secs(5);
@@ -574,6 +711,7 @@ mod tests {
         assert!(saved.contains(&("call".into(), "W2AW".into())));
         cfg = cfg.with_saved(&saved).unwrap();
         assert_eq!(cfg.call, "W2AW");
+        assert_eq!(cfg.drive, 10.0, "last accepted drive survives the full engine restart");
         stop.store(false, Ordering::SeqCst);
         update(&status, 1, String::new());
         let worker = session(cfg, directory.clone(), port, stop.clone(), status.clone(), reads);
@@ -582,6 +720,40 @@ mod tests {
         assert!(!worker.join().unwrap().0);
         let _listener = std::net::TcpListener::bind(address).unwrap();
         std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn drive_saver_flushes_the_last_value_and_preserves_other_settings() {
+        let dir = std::env::temp_dir().join(format!("xara-drive-save-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let settings = Arc::new(Settings::new(Init {
+            dir: Some(dir.clone()),
+            values: Vec::new(),
+            saved: vec![("call".into(), "W1AW".into())],
+            error: None,
+            validate: Box::new(|_| Ok(())),
+            list: Box::new(|| Ok(Devices::default())),
+        }));
+        let mut saver = DriveSaver::new(settings).unwrap();
+        for db in -30..=10 {
+            saver.queue(f64::from(db));
+        }
+        saver.finish().unwrap();
+        let saved = settings::load(&dir).unwrap();
+        assert!(saved.contains(&("drive-db".into(), "10".into())));
+        assert!(saved.contains(&("call".into(), "W1AW".into())));
+        for value in ["-30", "0", "10"] {
+            assert_eq!(
+                Config::parse(&format!("call=W1AW\ndrive-db={value}")).unwrap().drive,
+                value.parse::<f64>().unwrap()
+            );
+        }
+        for value in ["10.1", "-30.1", "NaN", "inf"] {
+            assert!(Config::parse(&format!("call=W1AW\ndrive-db={value}")).is_err());
+        }
+        assert_eq!(decode_device(&encode_device("USB Audio:UID-1")).unwrap(), "USB Audio:UID-1");
+        assert!(decode_device("coreaudio:zz").is_err());
+        std::fs::remove_dir_all(dir).unwrap();
     }
 
     #[test]

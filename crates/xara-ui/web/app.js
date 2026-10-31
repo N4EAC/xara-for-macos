@@ -43,6 +43,7 @@ function handle(m) {
       setText("diag-replay", count(m.replay));
       setText("diag-meter-floor", fixed(m.meter_floor));
       setText("diag-drive-min", fixed(m.drive_min));
+      setText("diag-drive-max", fixed(m.drive_max));
       setText("diag-tune-limit", fixed(m.tune_limit, 0));
       setText("diag-span", fixed(m.span, 0));
       for (const id of ["diag-backend", "diag-bins", "diag-rate", "diag-wf-floor", "diag-step"]) setText(id, "—");
@@ -55,6 +56,7 @@ function handle(m) {
       $("controls").hidden = !control;
       $("locked").hidden = !m.locked;
       $("drive").min = String(m.drive_min);
+      $("drive").max = String(Number.isFinite(m.drive_max) ? m.drive_max : 0);
       meterFloor = m.meter_floor;
       if (control) {
         send("SETTINGS ?");
@@ -108,6 +110,8 @@ function handle(m) {
       if (m.what === "restart") {
         setMsg(m.ok ? "Restarting…" : "Restart refused: the modem is busy.", !m.ok);
       }
+      if (m.what.startsWith("drive ")) $("drive-save").textContent = m.ok ? "Applied" : "Drive refused";
+      if (m.what.startsWith("save drive")) $("drive-save").textContent = m.ok ? "Saved" : m.what;
       log.add({
         ts: m.ts ?? latestTs,
         cls: m.ok ? "control" : "notice",
@@ -135,11 +139,11 @@ function status(s) {
 
   const st = $("state");
   st.textContent = s.state === "Listen" ? "Idle" : s.state;
-  st.className = "state " + (s.state === "Listen" ? "idle" : s.state === "Calling" ? "calling" : "linked");
+  const linked = typeof s.connected === "boolean" ? s.connected : s.state !== "Listen";
+  st.className = "state " + (s.state === "Listen" ? "idle" : linked ? "linked" : "calling");
   $("peer").textContent = s.peer || "—";
-  document.querySelector(".session").classList.toggle("linked", s.state !== "Listen");
+  document.querySelector(".session").classList.toggle("linked", linked);
 
-  const linked = s.state !== "Listen";
   $("level").textContent = linked ? s.level : "-";
   $("bps").textContent = s.bitrate ? s.bitrate.bps : "-";
   $("dir").textContent = s.bitrate ? (s.bitrate.tx ? "bps TX" : "bps RX") : "";
@@ -166,7 +170,7 @@ function status(s) {
   }
   rx(s.rx);
   tx(s.tx);
-  bpsPoints.push({ ts: s.ts, v: s.bitrate?.bps || 0 });
+  if (s.bitrate && Number.isFinite(s.bitrate.bps)) bpsPoints.push({ ts: s.ts, v: s.bitrate.bps });
   while (bpsPoints.length && bpsPoints[0].ts < s.ts - SN_WINDOW) bpsPoints.shift();
   setQuality("sn-meter", s.sn, -10, 30);
   setQuality("afc-meter", s.afc, -100, 100);
@@ -189,7 +193,7 @@ function controls(s) {
   $("abort").disabled = s.state === "Listen" && !s.tuning;
   if (!driveHeld) {
     $("drive").value = String(Math.round(s.drive));
-    $("drive-val").textContent = `${s.drive.toFixed(0)} dB`;
+    $("drive-val").textContent = `${s.drive > 0 ? "+" : ""}${s.drive.toFixed(Number.isInteger(s.drive) ? 0 : 1)} dB`;
   }
 }
 
@@ -198,9 +202,10 @@ $("abort").addEventListener("click", () => send("ABORT"));
 $("drive").addEventListener("pointerdown", () => { driveHeld = true; });
 $("drive").addEventListener("input", (e) => {
   driveHeld = true;
-  $("drive-val").textContent = `${e.target.value} dB`;
+  $("drive-val").textContent = `${Number(e.target.value) > 0 ? "+" : ""}${e.target.value} dB`;
 });
 $("drive").addEventListener("change", (e) => {
+  $("drive-save").textContent = "Saving…";
   send(`DRIVE ${e.target.value}`);
   setTimeout(() => { driveHeld = false; }, 300);
 });

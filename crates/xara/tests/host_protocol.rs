@@ -1,7 +1,5 @@
 mod common;
 use common::{Client, Lab, ask, check_sequence, events, is_reply, vector};
-use std::io::ErrorKind;
-use std::net::TcpStream;
 use xara::station::Modem;
 use xara::station::hf::Station;
 use xara::tnc::Tnc;
@@ -9,6 +7,7 @@ use xara_arq::hf::session::Config;
 use xara_arq::hf::session::State;
 use xara_host::server::Host;
 use xara_phy::hf::level::Bandwidth;
+use xara_testkit::net::turned_away;
 
 fn solo() -> (Lab, Client) {
     let mut lab = Lab::new(1);
@@ -278,8 +277,7 @@ fn one_client_per_port_and_drop_resets() {
     let (mut a, mut b) = (lab.attach(0), lab.attach(1));
     lab.settle();
     for addr in [lab.tnc[0].host().cmd_addr, lab.tnc[0].host().data_addr] {
-        let e = TcpStream::connect(addr).map(|_| ()).unwrap_err();
-        assert_eq!(e.kind(), ErrorKind::ConnectionRefused);
+        assert!(turned_away(addr));
     }
     assert_eq!(ask(&mut lab, &mut a, b"VERSION\r", 1), ["VERSION VARA HF v4.9.0"]);
 
@@ -351,7 +349,7 @@ fn tune_and_drivelevel_follow_vara() {
     assert_eq!(ask(&mut lab, &mut c, b"DRIVELEVEL -12\r", 1), ["OK"]);
     assert!(!tuning(&lab));
     assert_eq!(ask(&mut lab, &mut c, b"TUNE ?\r", 1), ["TUNE -12"]);
-    for junk in [&b"DRIVELEVEL abc\r"[..], b"DRIVELEVEL 3\r"] {
+    for junk in [&b"DRIVELEVEL abc\r"[..], b"DRIVELEVEL 11\r"] {
         assert_eq!(ask(&mut lab, &mut c, junk, 1), ["OK"]);
     }
     assert_eq!(drive(&lab), -12.0);

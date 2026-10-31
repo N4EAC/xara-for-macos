@@ -10,7 +10,7 @@ pub const EVENT_QUEUE: usize = 1024;
 pub(crate) const CONTROL_QUEUE: usize = 16;
 pub const METER_FLOOR_DB: f64 = -120.0;
 pub const UI_TUNE_LIMIT: Time = 20 * SECOND;
-const CLIP: f64 = 0.99;
+const CLIP: f64 = 32767.0 / 32768.0;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Meter {
@@ -75,6 +75,7 @@ pub struct Snapshot {
     pub rx: Meter,
     pub tx: Meter,
     pub ptt: bool,
+    pub connected: bool,
     pub busy: bool,
     pub tuning: bool,
     pub tune_left: f64,

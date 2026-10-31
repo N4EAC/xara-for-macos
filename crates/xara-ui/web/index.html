@@ -28,7 +28,7 @@
     <div><span class="eyebrow">RECEIVED THIS CONNECTION</span><div class="byte-value"><b id="received">—</b><span>bytes</span></div></div>
   </section>
   <section class="card throughput">
-    <div class="card-head"><h2>BPS</h2></div>
+    <div class="card-head"><h2 title="Latest modem-reported frame bitrate, not measured payload throughput">BPS</h2></div>
     <div class="readout"><b id="bps">—</b><span id="dir">bits / second</span></div>
     <canvas id="bps-chart" height="100" aria-label="Bitrate history over the last five minutes" role="img"></canvas>
     <div class="chart-caption"><span>5 MIN AGO</span><span>NOW</span></div>
@@ -40,10 +40,10 @@
     <div class="meter" id="rx"><label>IN</label><div class="bar"><div class="fill"></div><div class="hold"></div></div><span class="val">—</span><span id="rx-peak" class="peak-value" aria-label="RX peak dBFS">—</span><span id="rx-clips" class="clip-value" aria-label="RX clipped samples per update">—</span></div>
     <div class="meter" id="tx"><label>OUT</label><div class="bar"><div class="fill"></div><div class="hold"></div></div><span class="val">—</span><span id="tx-peak" class="peak-value" aria-label="TX peak dBFS">—</span><span id="tx-clips" class="clip-value" aria-label="TX clipped samples per update">—</span></div>
     <div class="scale"></div>
-    <div class="audio-window-label">Peak and clipping / telemetry update</div>
+    <div class="audio-window-label">Output = audio device samples · clipping = digital full scale</div>
     <div id="controls" class="controls" hidden>
-      <div class="drive"><label for="drive">TX drive</label><input type="range" id="drive" min="-30" max="0" step="1"><span id="drive-val" class="val">—</span></div>
-      <div class="buttons"><button id="tune" class="btn tune" type="button">Tune</button><button id="abort" class="btn danger" type="button">Abort</button></div>
+      <div class="drive"><label for="drive">TX drive</label><input type="range" id="drive" min="-30" max="10" step="1"><span id="drive-val" class="val">—</span></div>
+      <span id="drive-save" class="hint" role="status"></span><div class="buttons"><button id="tune" class="btn tune" type="button">Tune</button><button id="abort" class="btn danger" type="button">Abort</button></div>
     </div>
     <p id="locked" class="hint" hidden>Open the authenticated URL printed by XARA to enable controls.</p>
   </section>
@@ -91,7 +91,7 @@
       <div><dt>Replayed events</dt><dd id="diag-replay">—</dd></div>
       <div><dt>Audio backend</dt><dd id="diag-backend">—</dd></div>
       <div><dt>Meter floor</dt><dd><span id="diag-meter-floor">—</span> dBFS</dd></div>
-      <div><dt>Minimum TX drive</dt><dd><span id="diag-drive-min">—</span> dB</dd></div>
+      <div><dt>TX drive range</dt><dd><span id="diag-drive-min">—</span> to <span id="diag-drive-max">—</span> dB</dd></div>
       <div><dt>Tune limit</dt><dd><span id="diag-tune-limit">—</span> s</dd></div>
     </dl>
   </section>
@@ -124,7 +124,7 @@
     </fieldset></form>
     <datalist id="dev-capture"></datalist><datalist id="dev-playback"></datalist>
     <div class="settings-bottom"><p class="hint">Empty fields inherit command-line settings. Changes restart the modem while idle.<br>Audio devices belong to the computer running the modem.</p><div class="buttons"><button id="set-devices" class="btn" type="button" disabled>Refresh devices</button><button id="set-reset" class="btn" type="button" disabled>Use command line</button><button id="set-save" class="btn primary" type="button" disabled>Save and restart</button></div></div>
-    <p class="hint">Saving stores station, audio, and timing settings on this computer. Received data and audio are not recorded by this UI. Export saves the selected monitor text. Browser storage remembers display preferences.</p>
+    <p class="hint">Saving stores station, audio, and timing settings on this computer. TX drive is saved automatically when changed. Received data and audio are not recorded by this UI. Export saves the selected monitor text. Browser storage remembers display preferences.</p>
     <p id="set-msg" class="hint" role="status"></p>
   </section>
 </div>

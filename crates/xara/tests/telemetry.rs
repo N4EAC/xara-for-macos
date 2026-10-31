@@ -202,8 +202,11 @@ fn ui_drive_is_clamped_and_abort_stops_tune() {
     f[0].control(Control::Abort);
     lab.run_until(0.2, |_| false);
     let s = f[0].peek();
-    assert!(!s.tuning && !s.ptt && s.drive_db == 0.0);
+    assert!(!s.tuning && !s.ptt && s.drive_db == 3.0);
     assert_eq!(controls(&f[0]).last(), Some(&("abort".into(), true)));
+    f[0].control(Control::Drive(100.0));
+    lab.run_until(0.2, |_| false);
+    assert_eq!(f[0].peek().drive_db, 10.0);
 }
 
 #[test]
@@ -303,4 +306,24 @@ fn ui_tune_stops_when_its_page_goes() {
     a.send("TUNE OFF");
     lab.run_until(0.5, |_| false);
     assert!(!f[0].peek().tuning);
+}
+
+#[test]
+fn device_output_meter_uses_supplied_pcm_and_asserted_ptt() {
+    let cfg = xara_arq::hf::Config::new(xara_phy::hf::level::Bandwidth::Hz500, "W1AW");
+    let mut tnc = Tnc::new(xara::station::hf::Station::new(cfg, Options::default()), Host::disabled());
+    let (telemetry, feed) = channel(64);
+    tnc.set_telemetry(telemetry);
+    tnc.use_output_meter();
+    tnc.process(&[0.0; 480], &mut [0.0; 480]);
+    tnc.publish_output(&[16384, -16384, 32767, -32768], true);
+    let status = feed.take();
+    assert!(status.ptt);
+    assert_eq!(status.tx.samples(), 4);
+    assert_eq!(status.tx.clipped(), 2);
+    tnc.process(&[0.0; 480], &mut [0.0; 480]);
+    tnc.publish_output(&[], false);
+    let status = feed.take();
+    assert!(!status.ptt);
+    assert_eq!(status.tx.samples(), 0, "generated but unwritten audio is never metered");
 }

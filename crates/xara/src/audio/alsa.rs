@@ -6,17 +6,16 @@ use std::marker::PhantomData;
 use std::ptr;
 use std::time::{Duration, Instant};
 
-use super::{Audio, BLOCK, DeviceList, RATE, STALL, capture_only, quantize, remaining, sample};
+use super::ratematch::{self, Queue, TxBuffer};
+use super::{Audio, BLOCK, DeviceList, IO_TIMEOUT, Path, RATE, Report, capture_only, quantize, remaining, sample};
 
 type Frames = sys::snd_pcm_uframes_t;
 
 const PERIOD: Frames = BLOCK as Frames;
-const CAPTURE_BUFFER: Frames = 20 * PERIOD;
-const PLAYBACK_BUFFER: Frames = 4 * PERIOD;
+const CAPTURE_BUFFER: Frames = RATE as Frames;
 const PLAYBACK_START: Frames = 2 * PERIOD;
 const DEPTH: usize = 16;
 const WALK_DEPTH: usize = 64;
-const REPORT: Duration = Duration::from_secs(1);
 const POLL: Duration = Duration::from_millis(50);
 
 const SERVERS: [&str; 4] = ["default", "pulse", "pipewire", "jack"];
@@ -46,12 +45,21 @@ const PASS: [&str; 18] = [
 enum Def {
     Name(String),
     Plugin { kind: String, slave: Option<Box<Def>> },
+    Oss(String),
+}
+
+fn oss_unit(dev: &str) -> bool {
+    dev.strip_prefix("/dev/dsp").is_some_and(|u| {
+        let (unit, sub) = u.split_once('.').unwrap_or((u, "0"));
+        [unit, sub].iter().all(|p| !p.is_empty() && p.bytes().all(|b| b.is_ascii_digit()))
+    })
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Route {
     Card,
     Null,
+    Oss,
 }
 
 fn name_problem(name: &str) -> Option<String> {
@@ -72,6 +80,7 @@ fn follow(
     def: &Def,
     top: &str,
     depth: usize,
+    oss: bool,
 ) -> Result<Route, String> {
     if depth > DEPTH {
         return Err(format!("{top}: ALSA definition nested too deeply"));
@@ -83,11 +92,16 @@ fn follow(
                 return Err(format!("refusing ALSA playback to {top:?}: {via}{why}"));
             }
             let d = lookup(n)?;
-            follow(lookup, &d, top, depth + 1)
+            follow(lookup, &d, top, depth + 1, oss)
         }
         Def::Plugin { kind, .. } if kind == "hw" => Ok(Route::Card),
         Def::Plugin { kind, .. } if kind == "null" => Ok(Route::Null),
-        Def::Plugin { kind, slave: Some(s) } if PASS.contains(&kind.as_str()) => follow(lookup, s, top, depth + 1),
+        Def::Oss(d) if !oss => {
+            Err(format!("refusing ALSA playback to {top:?}: alsa-oss opens {d:?}, and oss is only allowed on FreeBSD"))
+        }
+        Def::Oss(d) if oss_unit(d) => Ok(Route::Oss),
+        Def::Oss(d) => Err(format!("refusing ALSA playback to {top:?}: alsa-oss plugin opens {d:?}, use /dev/dspN")),
+        Def::Plugin { kind, slave: Some(s) } if PASS.contains(&kind.as_str()) => follow(lookup, s, top, depth + 1, oss),
         Def::Plugin { kind, .. } => Err(format!(
             "refusing ALSA playback to {top:?}: it goes through a {kind:?} plugin; only ALSA's own plugins \
              in front of a hw card are allowed (sound servers can route anywhere)"
@@ -99,9 +113,10 @@ fn check_playback(
     lookup: &mut dyn FnMut(&str) -> Result<Def, String>,
     name: &str,
     radio: bool,
+    oss: bool,
 ) -> Result<Route, String> {
     if radio {
-        return follow(lookup, &Def::Name(name.into()), name, 0);
+        return follow(lookup, &Def::Name(name.into()), name, 0, oss);
     }
     let refuse = || {
         format!(
@@ -217,6 +232,13 @@ impl Config {
             return Ok(Def::Name(s));
         }
         let kind = n.child("type").and_then(Cfg::string).ok_or_else(|| format!("ALSA PCM {at:?} has no type"))?;
+        if kind == "oss" {
+            let device = match n.child("device") {
+                None => "/dev/dsp".into(),
+                Some(d) => d.string().ok_or_else(|| format!("ALSA PCM {at:?}: oss device is not a string"))?,
+            };
+            return Ok(Def::Oss(device));
+        }
         let key = if kind == "asym" { "playback" } else { "slave" };
         let slave = match n.child(key) {
             Some(s) if PASS.contains(&kind.as_str()) => Some(Box::new(self.slave(s, at)?)),
@@ -281,7 +303,7 @@ impl Config {
 
     fn resolve_playback(&self, name: &str, radio: bool) -> io::Result<Route> {
         self.check_device(name, "playback")?;
-        check_playback(&mut |n| self.pcm(n), name, radio).map_err(io::Error::other)
+        check_playback(&mut |n| self.pcm(n), name, radio, cfg!(target_os = "freebsd")).map_err(io::Error::other)
     }
 }
 
@@ -446,6 +468,19 @@ impl Handle {
         check("snd_pcm_wait", unsafe { sys::snd_pcm_wait(self.0, ms) }).map(drop)
     }
 
+    fn buffer_at_least(&self, hw: &Owned<sys::snd_pcm_hw_params_t>, val: &mut Frames) -> Result<(), Error> {
+        let mut min = *val;
+        // SAFETY: self.0 is open until Drop, hw is a live hw_params block, and a failed set_min leaves hw unchanged.
+        unsafe {
+            sys::snd_pcm_hw_params_set_buffer_size_min(self.0, hw.0, &mut min);
+            check(
+                "snd_pcm_hw_params_set_buffer_size_near",
+                sys::snd_pcm_hw_params_set_buffer_size_near(self.0, hw.0, val),
+            )
+            .map(drop)
+        }
+    }
+
     fn card(&self) -> Result<i32, Error> {
         let info = Owned::new("snd_pcm_info_malloc", sys::snd_pcm_info_malloc, sys::snd_pcm_info_free)?;
         // SAFETY: self.0 is open until Drop and info is a live info block.
@@ -464,6 +499,25 @@ impl Handle {
         // SAFETY: self.0 is open and buf has room for buf.len() / frame whole frames.
         let n = unsafe { sys::snd_pcm_readi(self.0, buf.as_mut_ptr().cast(), (buf.len() / frame) as Frames) };
         check("snd_pcm_readi", n).map(|n| n as usize)
+    }
+
+    fn avail(&self) -> Result<usize, Error> {
+        // SAFETY: self.0 is open until Drop.
+        check("snd_pcm_avail", unsafe { sys::snd_pcm_avail(self.0) }).map(|n| n as usize)
+    }
+
+    fn avail_delay(&self) -> Result<(usize, usize), Error> {
+        let (mut avail, mut delay): (sys::snd_pcm_sframes_t, sys::snd_pcm_sframes_t) = (0, 0);
+        // SAFETY: self.0 is open until Drop and both out pointers are valid.
+        check("snd_pcm_avail_delay", unsafe { sys::snd_pcm_avail_delay(self.0, &mut avail, &mut delay) })?;
+        Ok((avail.max(0) as usize, delay.max(0) as usize))
+    }
+
+    fn delay(&self) -> Result<usize, Error> {
+        let mut n: sys::snd_pcm_sframes_t = 0;
+        // SAFETY: self.0 is open until Drop and n is a valid out pointer.
+        check("snd_pcm_delay", unsafe { sys::snd_pcm_delay(self.0, &mut n) })?;
+        Ok(n.max(0) as usize)
     }
 
     fn writei(&self, buf: &[u8], frame: usize) -> Result<usize, Error> {
@@ -487,9 +541,10 @@ struct Pcm {
     format: Format,
     width: usize,
     channels: usize,
+    buffer: usize,
     buf: Vec<u8>,
     xruns: u64,
-    reported: Option<Instant>,
+    report: Report,
 }
 
 impl Pcm {
@@ -504,9 +559,10 @@ impl Pcm {
             format: Format::FloatLE,
             width: 4,
             channels: 1,
+            buffer: 0,
             buf: Vec::new(),
             xruns: 0,
-            reported: None,
+            report: Report::default(),
         })
     }
 
@@ -514,14 +570,14 @@ impl Pcm {
         self.pcm.card().map_err(alsa_err(&self.name))
     }
 
-    fn setup(&mut self) -> io::Result<()> {
+    fn setup(&mut self, want: Frames) -> io::Result<()> {
         let e = alsa_err(&self.name);
         let ok = |func, r: c_int| check(func, r).map_err(&e);
         let hw_params =
             || Owned::new("snd_pcm_hw_params_malloc", sys::snd_pcm_hw_params_malloc, sys::snd_pcm_hw_params_free);
         let (p, capture) = (self.pcm.0, self.dir == Direction::Capture);
         let (hw, cur) = (hw_params().map_err(&e)?, hw_params().map_err(&e)?);
-        let (mut period, mut buffer) = (PERIOD, if capture { CAPTURE_BUFFER } else { PLAYBACK_BUFFER });
+        let (mut period, mut buffer) = (PERIOD, want);
         let (mut rate, mut channels, mut dir) = (0, 1, 0);
         // SAFETY: p is an open PCM and hw is a live hw_params block.
         let found = unsafe {
@@ -557,10 +613,7 @@ impl Pcm {
                 "snd_pcm_hw_params_set_period_size_near",
                 sys::snd_pcm_hw_params_set_period_size_near(p, hw.0, &mut period, &mut dir),
             )?;
-            ok(
-                "snd_pcm_hw_params_set_buffer_size_near",
-                sys::snd_pcm_hw_params_set_buffer_size_near(p, hw.0, &mut buffer),
-            )?;
+            self.pcm.buffer_at_least(&hw, &mut buffer).map_err(&e)?;
             ok("snd_pcm_hw_params", sys::snd_pcm_hw_params(p, hw.0))?;
             ok("snd_pcm_hw_params_current", sys::snd_pcm_hw_params_current(p, cur.0))?;
             ok("snd_pcm_hw_params_get_rate", sys::snd_pcm_hw_params_get_rate(cur.0, &mut rate, &mut dir))?;
@@ -598,6 +651,7 @@ impl Pcm {
             self.name,
         );
         self.format = format;
+        self.buffer = buffer as usize;
         self.width = if format == Format::S16LE { 2 } else { 4 };
         self.channels = channels as usize;
         Ok(())
@@ -623,9 +677,13 @@ impl Pcm {
             let _ = self.pcm.start();
         }
         self.xruns += 1;
-        if self.reported.is_none_or(|t| t.elapsed() >= REPORT) {
-            self.reported = Some(Instant::now());
-            let kind = if err.errno == libc::ESTRPIPE { "suspended" } else { "xrun" };
+        if self.report.due(self.xruns) {
+            let kind = match (err.errno, self.dir) {
+                #[cfg(target_os = "linux")]
+                (libc::ESTRPIPE, _) => "suspended",
+                (_, Direction::Playback) => "underrun",
+                _ => "overrun",
+            };
             say!("alsa {} {:?}: {kind}, recovered ({} so far)", what(self.dir), self.name, self.xruns);
         }
         Ok(())
@@ -638,7 +696,10 @@ impl Pcm {
         }
         let errno = match self.pcm.state() {
             sys::SND_PCM_STATE_XRUN => libc::EPIPE,
+            #[cfg(target_os = "linux")]
             sys::SND_PCM_STATE_SUSPENDED => libc::ESTRPIPE,
+            #[cfg(not(target_os = "linux"))]
+            sys::SND_PCM_STATE_SUSPENDED => libc::EPIPE,
             sys::SND_PCM_STATE_DISCONNECTED => libc::ENODEV,
             _ => return Ok(()),
         };
@@ -662,13 +723,33 @@ fn get(f: &[u8], format: Format) -> i16 {
     }
 }
 
+fn short_buffer(name: &str, granted: usize, tx: TxBuffer) -> Option<String> {
+    if granted >= tx.capacity() {
+        return None;
+    }
+    let ms = |frames: usize| frames * 1000 / RATE as usize;
+    let fits = granted / TxBuffer::ms(1).capacity();
+    let advice = if fits >= ratematch::MIN_MS as usize {
+        format!("use --tx-buffer-ms {fits} or less")
+    } else {
+        format!("even --tx-buffer-ms {} needs {} ms", ratematch::MIN_MS, ms(TxBuffer::ms(ratematch::MIN_MS).capacity()))
+    };
+    Some(format!(
+        "ALSA playback {name:?}: the device buffers at most {} ms, but --tx-buffer-ms {} needs {} ms (4x); {advice}",
+        ms(granted),
+        ms(tx.target),
+        ms(tx.capacity())
+    ))
+}
+
 pub struct AlsaIo {
     rec: Pcm,
     play: Option<Pcm>,
+    avail: Option<usize>,
 }
 
 impl AlsaIo {
-    pub fn open(capture: &str, playback: &str, radio: bool) -> io::Result<Self> {
+    pub fn open(capture: &str, playback: &str, radio: bool, tx: TxBuffer) -> io::Result<Self> {
         let cfg = Config::load()?;
         let route = cfg.resolve_playback(playback, radio)?;
         let mut play = Pcm::open(&cfg, playback, Direction::Playback)?;
@@ -679,15 +760,18 @@ impl AlsaIo {
             )));
         }
         let mut rec = Pcm::open(&cfg, capture, Direction::Capture)?;
-        play.setup()?;
-        rec.setup()?;
-        Ok(Self { rec, play: Some(play) })
+        play.setup(tx.capacity() as Frames)?;
+        if let Some(e) = short_buffer(playback, play.buffer, tx) {
+            return Err(io::Error::other(e));
+        }
+        rec.setup(CAPTURE_BUFFER)?;
+        Ok(Self { rec, play: Some(play), avail: None })
     }
 
     pub fn open_capture(capture: &str) -> io::Result<Self> {
         let mut rec = Pcm::open(&Config::load()?, capture, Direction::Capture)?;
-        rec.setup()?;
-        Ok(Self { rec, play: None })
+        rec.setup(CAPTURE_BUFFER)?;
+        Ok(Self { rec, play: None, avail: None })
     }
 }
 
@@ -697,7 +781,7 @@ impl Audio for AlsaIo {
         let frame = r.frame();
         let need = x.len() * frame;
         r.buf.resize(need, 0);
-        let (mut got, until) = (0, Instant::now() + STALL);
+        let (mut got, until) = (0, Instant::now() + IO_TIMEOUT);
         while got < need {
             let n = r.pcm.readi(&mut r.buf[got..], frame);
             match n {
@@ -722,7 +806,7 @@ impl Audio for AlsaIo {
             }
         }
         let frame = p.frame();
-        let (mut off, until) = (0, Instant::now() + STALL);
+        let (mut off, until) = (0, Instant::now() + IO_TIMEOUT);
         while off < p.buf.len() {
             let n = p.pcm.writei(&p.buf[off..], frame);
             match n {
@@ -733,6 +817,26 @@ impl Audio for AlsaIo {
             }
         }
         Ok(())
+    }
+
+    fn queued(&mut self) -> io::Result<Option<Queue>> {
+        let Some(p) = &mut self.play else { return Err(capture_only()) };
+        let frames = match p.pcm.delay() {
+            Ok(n) => n,
+            Err(e) => p.recover(e).map(|()| 0)?,
+        };
+        Ok(Some(Queue { frames, floor: 0, underruns: p.xruns }))
+    }
+
+    fn backlog(&mut self) -> io::Result<Option<usize>> {
+        self.avail = self.rec.pcm.avail().ok();
+        Ok(self.avail)
+    }
+
+    fn path(&mut self) -> io::Result<Path> {
+        let seen = self.avail.take();
+        let capture = self.rec.pcm.avail_delay().ok().map(|(avail, delay)| delay.saturating_sub(seen.unwrap_or(avail)));
+        Ok(Path { capture, queue: true, ..Path::default() })
     }
 }
 
@@ -781,12 +885,24 @@ mod tests {
             ("multi", plugin("multi", None)),
             ("dangling", plugin("plug", None)),
             ("loop", name("loop")),
+            ("oss_unit", plugin("plug", Some(Def::Oss("/dev/dsp5".into())))),
+            ("oss_sub", Def::Oss("/dev/dsp5.0".into())),
+            ("oss_alias", name("oss_sub")),
+            ("oss_bare", plugin("plug", Some(Def::Oss("/dev/dsp".into())))),
+            ("oss_odd", Def::Oss("/dev/dsp5x".into())),
+            ("oss_dot", Def::Oss("/dev/dsp5.".into())),
+            ("oss_nounit", Def::Oss("/dev/dsp.0".into())),
+            ("oss_other", Def::Oss("/dev/audio0".into())),
         ])
     }
 
-    fn check(n: &str, radio: bool) -> Result<Route, String> {
+    fn check_on(n: &str, radio: bool, oss: bool) -> Result<Route, String> {
         let t = table();
-        check_playback(&mut |k| t.get(k).cloned().ok_or_else(|| format!("no ALSA pcm named {k:?}")), n, radio)
+        check_playback(&mut |k| t.get(k).cloned().ok_or_else(|| format!("no ALSA pcm named {k:?}")), n, radio, oss)
+    }
+
+    fn check(n: &str, radio: bool) -> Result<Route, String> {
+        check_on(n, radio, true)
     }
 
     #[test]
@@ -796,7 +912,7 @@ mod tests {
             assert!(check(n, false).unwrap_err().contains("needs --radio"), "{n}");
         }
         let t = HashMap::from([("null", plugin("plug", Some(name("hw:1,0"))))]);
-        assert!(check_playback(&mut |k| t.get(k).cloned().ok_or_else(String::new), "null", false).is_err());
+        assert!(check_playback(&mut |k| t.get(k).cloned().ok_or_else(String::new), "null", false, true).is_err());
     }
 
     #[test]
@@ -832,6 +948,26 @@ mod tests {
     }
 
     #[test]
+    fn radio_allows_oss_only_on_a_numbered_unit() {
+        for n in ["oss_unit", "oss_sub", "oss_alias"] {
+            assert_eq!(check(n, true), Ok(Route::Oss), "{n}");
+            assert!(check(n, false).unwrap_err().contains("needs --radio"), "{n}");
+        }
+        for n in ["oss_bare", "oss_odd", "oss_dot", "oss_nounit", "oss_other"] {
+            assert!(check(n, true).unwrap_err().contains("use /dev/dspN"), "{n}");
+            assert!(check(n, false).unwrap_err().contains("needs --radio"), "{n}");
+        }
+    }
+
+    #[test]
+    fn oss_is_refused_off_freebsd() {
+        for n in ["oss_unit", "oss_sub", "oss_alias", "oss_bare", "oss_other"] {
+            assert!(check_on(n, true, false).unwrap_err().contains("only allowed on FreeBSD"), "{n}");
+        }
+        assert_eq!(check_on("radio", true, false), Ok(Route::Card));
+    }
+
+    #[test]
     fn radio_refuses_anything_that_resolves_to_a_sound_server_or_unknown_plugin() {
         for (n, why) in [
             ("alias_pulse", "goes through \"pulse\""),
@@ -849,6 +985,61 @@ mod tests {
             let e = check(n, true).unwrap_err();
             assert!(e.contains(why), "{n}: {e}");
         }
+    }
+
+    #[test]
+    fn a_playback_buffer_smaller_than_the_tx_capacity_is_refused() {
+        let tx = TxBuffer::ms(500);
+        assert_eq!(short_buffer("dmix:CARD=Device", 96000, tx), None);
+        assert_eq!(short_buffer("dmix:CARD=Device", 100000, tx), None);
+        assert_eq!(
+            short_buffer("dmix:CARD=Device", 16384, tx).as_deref(),
+            Some(
+                "ALSA playback \"dmix:CARD=Device\": the device buffers at most 341 ms, but --tx-buffer-ms 500 needs \
+                 2000 ms (4x); use --tx-buffer-ms 85 or less"
+            )
+        );
+        assert_eq!(short_buffer("hw:1,0", 7680, TxBuffer::ms(40)), None);
+        assert!(
+            short_buffer("hw:1,0", 7679, TxBuffer::ms(40)).is_some_and(|e| e.ends_with("--tx-buffer-ms 39 or less"))
+        );
+        assert!(short_buffer("hw:1,0", 4096, TxBuffer::ms(40)).is_some_and(|e| {
+            e.ends_with("at most 85 ms, but --tx-buffer-ms 40 needs 160 ms (4x); even --tx-buffer-ms 30 needs 120 ms")
+        }));
+    }
+
+    #[test]
+    fn the_playback_buffer_rounds_up_to_whole_periods_unless_the_device_max_is_lower() {
+        let pcm = Handle::open(c"null", Direction::Playback).unwrap();
+        let setup = |max: Option<Frames>| {
+            let hw = Owned::new("snd_pcm_hw_params_malloc", sys::snd_pcm_hw_params_malloc, sys::snd_pcm_hw_params_free)
+                .unwrap();
+            let (mut period, mut channels, mut dir) = (PERIOD, 1, 0);
+            // SAFETY: pcm is open and hw is a live hw_params block.
+            unsafe {
+                assert!(sys::snd_pcm_hw_params_any(pcm.0, hw.0) >= 0);
+                assert!(sys::snd_pcm_hw_params_set_access(pcm.0, hw.0, sys::SND_PCM_ACCESS_RW_INTERLEAVED) >= 0);
+                assert!(sys::snd_pcm_hw_params_set_format(pcm.0, hw.0, Format::S16LE.code()) >= 0);
+                assert!(sys::snd_pcm_hw_params_set_channels_near(pcm.0, hw.0, &mut channels) >= 0);
+                assert!(sys::snd_pcm_hw_params_set_rate(pcm.0, hw.0, RATE, 0) >= 0);
+                assert!(sys::snd_pcm_hw_params_set_period_size_near(pcm.0, hw.0, &mut period, &mut dir) >= 0);
+                assert!(sys::snd_pcm_hw_params_set_periods_integer(pcm.0, hw.0) >= 0);
+                if let Some(mut max) = max {
+                    assert!(sys::snd_pcm_hw_params_set_buffer_size_max(pcm.0, hw.0, &mut max) >= 0);
+                }
+            }
+            assert_eq!(period, PERIOD);
+            hw
+        };
+        let tx = TxBuffer::ms(33);
+        let mut buffer = tx.capacity() as Frames;
+        pcm.buffer_at_least(&setup(None), &mut buffer).unwrap();
+        assert_eq!(buffer, 14 * PERIOD);
+        assert_eq!(short_buffer("null", buffer as usize, tx), None);
+        let mut buffer = tx.capacity() as Frames;
+        pcm.buffer_at_least(&setup(Some(4000)), &mut buffer).unwrap();
+        assert_eq!(buffer, 8 * PERIOD);
+        assert!(short_buffer("null", buffer as usize, tx).is_some_and(|e| e.contains("at most 80 ms")));
     }
 
     #[test]
