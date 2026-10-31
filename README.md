@@ -15,7 +15,7 @@ Based on **[XARA by x0rro](https://github.com/x0rro/xara)**. The original projec
 | Processor | Apple Silicon (arm64; M1 or newer) |
 | Operating system | macOS 12 Monterey or newer |
 | Intel Macs | Not supported by the downloadable ZIP; it is not a Universal build |
-| Modem version | XARA 0.1.3; macOS application build 3 |
+| Modem version | XARA 0.1.3; macOS application build 4 |
 | Audio | Native Core Audio; 48 kHz, signed 16-bit mono PCM internally |
 | Signing | Ad-hoc signed; not Developer ID signed or notarized |
 
@@ -89,7 +89,7 @@ The original CLI source retains explicitly requested `--log`/`--record`, digipea
 
 **Update → Check for Updates…** compares the app version and build with this repository’s latest published macOS release. Matching versions display “Xara UI for Mac by N4EAC is up-to-date.” A newer release offers its GitHub page. The check does not download, install, rebuild, or restart anything; using the app and checking for updates require no Rust or Xcode installation. Those tools are required only for building from source.
 
-The current app and release are 0.1.3 / macOS build 3.
+The current app and release are 0.1.3 / macOS build 4.
 
 ## Validation
 

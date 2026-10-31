@@ -536,6 +536,24 @@ pub unsafe extern "C" fn xara_embedded_start(config: *const c_char, directory: *
     0
 }
 
+/// Validate native station identity with the same rules as modem settings.
+/// # Safety
+/// call must be null or point to a valid NUL-terminated UTF-8 string for this call.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xara_embedded_valid_call(call: *const c_char) -> i32 {
+    if call.is_null() {
+        return 0;
+    }
+    // SAFETY: the caller supplies the documented C string.
+    let value = unsafe { CStr::from_ptr(call) };
+    let valid = value
+        .to_str()
+        .ok()
+        .and_then(|s| crate::cli::call(s).ok())
+        .is_some_and(|call| !call.split('-').next().is_some_and(|base| base.eq_ignore_ascii_case("N0CALL")));
+    i32::from(valid)
+}
+
 #[unsafe(no_mangle)]
 pub extern "C" fn xara_embedded_stop() {
     if let Some(runtime) = lock(&RUNTIME).as_ref() {
@@ -720,6 +738,19 @@ mod tests {
         assert!(!worker.join().unwrap().0);
         let _listener = std::net::TcpListener::bind(address).unwrap();
         std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn native_call_validation_matches_modem_ssids() {
+        for call in ["N4EAC", "W1AW-1", "W1AW-19", "W1AW-T", "W1AW-R", "W1AW-X", "W1AW-L"] {
+            let call = std::ffi::CString::new(call).unwrap();
+            assert_eq!(unsafe { xara_embedded_valid_call(call.as_ptr()) }, 1);
+        }
+        for call in ["N0CALL", "N0CALL-1", "TOOLONG8", "W1AW-20", "W1AW-0", "W1AW-Q", "W1AW\nhf=500"] {
+            let call = std::ffi::CString::new(call).unwrap();
+            assert_eq!(unsafe { xara_embedded_valid_call(call.as_ptr()) }, 0);
+        }
+        assert_eq!(unsafe { xara_embedded_valid_call(std::ptr::null()) }, 0);
     }
 
     #[test]

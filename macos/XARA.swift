@@ -236,7 +236,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         current.externalPorts = ports.state == .on
         current.commandPort = port.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
         current.kissPort = kiss.stringValue.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let validCall = current.call.range(of: "^[A-Z0-9]{1,15}(-[0-9]{1,2})?$", options: .regularExpression) != nil && !current.call.hasPrefix("N0CALL")
+        let validCall = !current.call.utf8.contains(0) && current.call.withCString { xara_embedded_valid_call($0) != 0 }
         let command = Int(current.commandPort) ?? -1
         let kissNumber = Int(current.kissPort) ?? -1
         let validKiss = current.kissPort == "off" || (1...65535).contains(kissNumber) && kissNumber != command && kissNumber != command + 1
@@ -244,6 +244,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
               !current.pttAddress.contains(where: { $0.isNewline }),
               current.ptt == "off" || (current.input != "default" && current.output != "default") else {
             alert("Check station settings", "Enter your station callsign, distinct valid TCP ports, and explicit radio audio devices when transmit is enabled."); return
+        }
+        guard xara_embedded_can_configure() != 0 else {
+            alert("Modem is busy", "A radio operation started while settings were open. Disconnect and stop tuning before applying changes."); return
         }
         configuration = current
         stop { [self] in
@@ -435,7 +438,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         panel.messageText = "Xara modem for Mac"
         let info = Bundle.main.infoDictionary ?? [:]
         let version = info["CFBundleShortVersionString"] as? String ?? "0.1.3"
-        let build = info["CFBundleVersion"] as? String ?? "3"
+        let build = info["CFBundleVersion"] as? String ?? "4"
         panel.informativeText = "By N4EAC, Eduardo\nXARA \(version) · macOS build \(build)\nOriginal modem by x0rro"
         panel.addButton(withTitle: "GitHub Releases")
         panel.addButton(withTitle: "Original XARA")
