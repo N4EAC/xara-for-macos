@@ -391,3 +391,65 @@ fn tune_while_calling_only_sets_the_drive() {
     assert!(!lab.tnc[0].station().tuning());
     assert_eq!(lab.tnc[0].station().options().drive_db, -7.0);
 }
+
+#[test]
+fn repeated_mycall_preserves_a_link_and_data_transfer() {
+    let mut lab = Lab::new(2);
+    let (mut a, mut b) = (lab.attach(0), lab.attach(1));
+    link(&mut lab, &mut a, &mut b);
+    lab.run_until(8.0, |_| false);
+    let registered = a.count("REGISTERED");
+    let cfg = lab.tnc[0].station().config().clone();
+    let payload: Vec<u8> = (0..1024).map(|i| (i % 251) as u8).collect();
+    a.write(&payload);
+    lab.run_until(0.1, |_| false);
+    for _ in 0..3 {
+        assert_eq!(ask(&mut lab, &mut a, b"MYCALL N0CALL\r", 1), ["OK"]);
+        assert_ne!(lab.tnc[0].station().state(), State::Listen);
+        assert_eq!(lab.tnc[0].station().config().host.mycalls, cfg.host.mycalls);
+        assert_eq!(lab.tnc[0].station().bandwidth(), cfg.bw);
+    }
+    let received = b.bytes.clone();
+    assert!(
+        lab.run_until(400.0, |_| received.lock().unwrap().len() == payload.len()),
+        "received {} bytes; host: {:?}",
+        received.lock().unwrap().len(),
+        a.since(0)
+    );
+    assert_eq!(*b.bytes.lock().unwrap(), payload);
+    assert_eq!(a.count("DISCONNECTED"), 0);
+    assert_eq!(a.count("REGISTERED"), registered, "busy no-op must not reset registration timing");
+    assert_eq!(ask(&mut lab, &mut a, b"MYCALL N0CALL-5\r", 1), ["WRONG"]);
+    assert_eq!(lab.tnc[0].station().config().host.mycalls, cfg.host.mycalls);
+    assert_eq!(ask(&mut lab, &mut a, b"MYCALL N0CALL\r", 1), ["OK"]);
+    assert_eq!(ask(&mut lab, &mut a, b"ABORT\r", 1), ["OK"]);
+    assert!(lab.run_until(10.0, |l| l.tnc[0].station().idle()));
+    assert_eq!(
+        lab.tnc[0].station().config().host.mycalls,
+        ["N0CALL-5"],
+        "existing deferred-change behavior is preserved"
+    );
+}
+
+#[test]
+fn busy_mycall_requires_an_exact_configured_list() {
+    {
+        let (mut lab, mut c) = solo();
+        assert_eq!(ask(&mut lab, &mut c, b"MYCALL N4EAC\r", 1), ["OK"]);
+        assert_eq!(ask(&mut lab, &mut c, b"CONNECT N4EAC N1CALL\r", 1), ["OK"]);
+        assert_eq!(lab.tnc[0].station().state(), State::Calling);
+        assert_eq!(ask(&mut lab, &mut c, b"MYCALL N4EAC\r", 1), ["OK"]);
+        assert_eq!(lab.tnc[0].station().state(), State::Calling);
+        assert_eq!(lab.tnc[0].station().config().host.mycalls, ["N4EAC"]);
+    }
+    let (mut lab, mut c) = solo();
+    assert_eq!(ask(&mut lab, &mut c, b"MYCALL N4EAC N4EAC-1\r", 1), ["OK"]);
+    assert_eq!(ask(&mut lab, &mut c, b"CONNECT N4EAC N1CALL\r", 1), ["OK"]);
+    assert_eq!(lab.tnc[0].station().state(), State::Calling);
+    assert_eq!(ask(&mut lab, &mut c, b"MYCALL N4EAC N4EAC-1\r", 1), ["OK"]);
+    assert_eq!(ask(&mut lab, &mut c, b"MYCALL N4EAC\r", 1), ["WRONG"]);
+    assert_eq!(ask(&mut lab, &mut c, b"MYCALL N4EAC-1 N4EAC\r", 1), ["WRONG"]);
+    assert_eq!(ask(&mut lab, &mut c, b"MYCALL BAD!\r", 1), ["WRONG"]);
+    assert_eq!(lab.tnc[0].station().config().host.mycalls, ["N4EAC", "N4EAC-1"]);
+    assert_eq!(lab.tnc[0].station().state(), State::Calling);
+}

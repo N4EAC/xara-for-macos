@@ -415,6 +415,9 @@ impl<M: Modem> Tnc<M> {
                     && !vias.contains(&mycall)
                     && self.station.connect(&mycall, &remote, &vias)
             }
+            // A host may repeat initialization while a previous radio operation is still finishing.
+            // Acknowledge the identical full call list without reconfiguring or resetting the session.
+            Command::Mycall(Ok(ref calls)) if !idle && calls == &self.station.config().host().mycalls => true,
             Command::Mycall(calls) if !idle => {
                 self.deferred_mycall = Some(calls);
                 false

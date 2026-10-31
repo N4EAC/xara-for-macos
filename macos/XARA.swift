@@ -438,7 +438,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         panel.messageText = "Xara modem for Mac"
         let info = Bundle.main.infoDictionary ?? [:]
         let version = info["CFBundleShortVersionString"] as? String ?? "0.1.3"
-        let build = info["CFBundleVersion"] as? String ?? "4"
+        let build = info["CFBundleVersion"] as? String ?? "5"
         panel.informativeText = "By N4EAC, Eduardo\nXARA \(version) · macOS build \(build)\nOriginal modem by x0rro"
         panel.addButton(withTitle: "GitHub Releases")
         panel.addButton(withTitle: "Original XARA")

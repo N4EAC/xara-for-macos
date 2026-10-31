@@ -1,6 +1,6 @@
 # Upstream alignment and telemetry review
 
-Reviewed October 31, 2026 against original XARA **0.1.3**, commit [`09a9201381b00499ada9d9c816bd05bb8f175705`](https://github.com/x0rro/xara/commit/09a9201381b00499ada9d9c816bd05bb8f175705). The previous macOS distribution used upstream 0.1.1. The current app is **0.1.3 / macOS build 4**.
+Reviewed October 31, 2026 against original XARA **0.1.3**, commit [`09a9201381b00499ada9d9c816bd05bb8f175705`](https://github.com/x0rro/xara/commit/09a9201381b00499ada9d9c816bd05bb8f175705). The previous macOS distribution used upstream 0.1.1. The current app is **0.1.3 / macOS build 5**.
 
 ## Upstream integration
 
@@ -22,6 +22,7 @@ Intentional differences from upstream:
 | Native application | AppKit/WKWebView shell with the modem linked into the same process |
 | Host listeners | Explicit shutdown/join and restart lifecycle, automatic cleanup on drop, and an in-process mode without command/data sockets |
 | Network defaults | Authenticated native telemetry/controls; command/data/KISS ports off until explicitly enabled; loopback-only native listeners |
+| Repeated host initialization | An unchanged full `MYCALL` list is acknowledged while busy without reconfiguration; different/invalid lists and idle initialization retain the original behavior |
 | Saved settings | Owner-only directory/files; preserved encoded Core Audio UIDs; automatic TX-drive persistence |
 | Drive range | −30 to +10 dB in the native UI and host controls; the +10 maximum is an intentional extension to upstream's 0 dB maximum |
 | Main UI | Additional instrument panels, per-connection bytes, protocol indicators, diagnostics, and accurate output/PTT telemetry |
@@ -75,7 +76,8 @@ There is no app/tool installer, automatic updater, or automatic rebuild/restart.
 
 ## Validation
 
-- **450 workspace tests passed; 8 ignored** because they require physical loopback or external VARA captures. This includes simulated HF/FM audio links, DSP/protocol vectors, byte counters, host interfaces, private UI access, drive persistence across a full engine restart, +10 dB limits, PTT tail/controller state, and device-output meter behavior.
+- **453 workspace tests passed; 8 ignored** because they require physical loopback or external VARA captures. This includes simulated HF/FM audio links, DSP/protocol vectors, byte counters, host interfaces, private UI access, drive persistence across a full engine restart, +10 dB limits, PTT tail/controller state, and device-output meter behavior.
+- Additional MYCALL regressions verify the exact `N4EAC` retry, full-list matching, live HF/FM payload transfer, unchanged registration timing, and preserved rejection/deferred changes. This confirms the modem behavior; the reported MacWinlink incident still requires field confirmation.
 - Clippy for macOS app features/all targets passed with warnings denied; rustfmt and whitespace checks passed.
 - Browser regression checks passed for the +10 dB slider command, Saved feedback, diagnostics, waveform display, safe payload text, setup, export, responsive layout, stale values, and reconnection behavior.
 - Native About construction and release-version parsing/comparison were tested with active preconditions. The user-requested GitHub metadata endpoint was checked live. Malformed tags and non-public release metadata were rejected.
@@ -88,12 +90,12 @@ Repeat the main test suite with:
 cargo test --locked --release --workspace --no-default-features --features xara/macos-app
 ```
 
-The October 30 [security review](SECURITY_REVIEW.md) remains evidence for build 2; its artifact hashes and test counts are historical. Build 4 retains the private-listener and settings-permission defaults. The new user-requested GitHub metadata check is the explicitly disclosed network addition.
+The October 30 [security review](SECURITY_REVIEW.md) remains evidence for build 2; its artifact hashes and test counts are historical. Build 5 retains the private-listener and settings-permission defaults. The new user-requested GitHub metadata check is the explicitly disclosed network addition.
 
-## Build 4 package
+## Build 5 package
 
-App: `target/macos/XARA.app`. ZIP: `target/release-assets/v0.1.3-macos.4/XARA-macOS-arm64.zip`. Apple Silicon arm64, macOS 12+ deployment target; ad-hoc signed with hardened runtime, not notarized.
+App: `target/macos/XARA.app`. ZIP: `target/release-assets/v0.1.3-macos.5/XARA-macOS-arm64.zip`. Apple Silicon arm64, macOS 12+; ad-hoc signed with hardened runtime, not notarized.
 
 ```text
-13801f43c0c547b82d9e328237386380b7455b1e192630d15642c5ddb8c99b06  XARA-macOS-arm64.zip
+eb3a9aba56406dbdc77d1872df552678394c62e2a5ebd8b8d34604b8368a8891  XARA-macOS-arm64.zip
 ```

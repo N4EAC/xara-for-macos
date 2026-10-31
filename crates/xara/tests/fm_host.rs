@@ -122,3 +122,27 @@ fn fm_link_host_messages() {
     assert!(a.saw("DISCONNECTED") && b.saw("DISCONNECTED"));
     assert!(b.since(0).iter().rev().take(3).any(|l| l == "CANCELPENDING"), "{:?}", without_status(&b));
 }
+
+#[test]
+fn repeated_fm_mycall_preserves_an_active_link() {
+    let mut lab = lab(FmBandwidth::Narrow);
+    let (mut a, mut b) = (lab.attach(0), lab.attach(1));
+    lab.settle();
+    assert_eq!(first_line(&mut lab, &mut b, "LISTEN ON"), "OK");
+    assert_eq!(first_line(&mut lab, &mut a, "CONNECT XX0A XX0B"), "OK");
+    let (al, bl) = (a.lines.clone(), b.lines.clone());
+    assert!(lab.run_until(30.0, |_| {
+        [al.clone(), bl.clone()]
+            .iter()
+            .all(|lines| lines.lock().unwrap().iter().any(|line| line.starts_with("CONNECTED ")))
+    }));
+    assert_eq!(first_line(&mut lab, &mut a, "MYCALL XX0A"), "OK");
+    assert_eq!(first_line(&mut lab, &mut a, "MYCALL XX0A-1"), "WRONG");
+    assert_eq!(lab.tnc[0].station().config().host.mycalls, ["XX0A"]);
+    let payload = b"FM remains connected after repeated initialization";
+    a.write(payload);
+    let bytes = b.bytes.clone();
+    assert!(lab.run_until(40.0, |_| bytes.lock().unwrap().len() == payload.len()));
+    assert_eq!(*b.bytes.lock().unwrap(), payload);
+    assert!(!a.since(0).iter().any(|line| line == "DISCONNECTED"));
+}
