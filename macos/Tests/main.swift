@@ -46,3 +46,28 @@ try Data("malformed".utf8).write(to:path)
 do { _ = try RadioProfileStore.read(from:path); preconditionFailure("Malformed JSON accepted") } catch {}
 try FileManager.default.removeItem(at:root)
 print("PASS: two-radio full configuration round-trip, UI-setting merge, legacy defaults, invalid values/names, duplicates, private permissions and unsafe/malformed file rejection")
+
+// Regression: NSPopUpButton.addItems(withTitles:) collapses duplicate titles.
+// Jeremy's three same-named USB devices shifted IC-7100 onto Jump Desktop Audio.
+let application = NSApplication.shared
+let captureDevices = [("default", "Default"), ("iphone", "iPhone"), ("usb-a", "USB Audio CODEC"), ("usb-b", "USB Audio CODEC"), ("usb-c", "USB Audio CODEC"), ("pnp", "USB PnP Sound Device"), ("builtin", "Built-in Microphone"), ("jump-mic", "Jump Desktop Microphone"), ("jump-audio", "Jump Desktop Audio"), ("ic9700", "IC-9700, aggregate"), ("ic7100", "IC-7100, aggregate"), ("k2", "Elecraft K2, aggregate")]
+let broken = NSPopUpButton(); broken.addItems(withTitles: captureDevices.map { $0.1 })
+precondition(broken.numberOfItems == 10)
+broken.selectItem(withTitle:"IC-7100, aggregate")
+precondition(captureDevices[broken.indexOfSelectedItem].0 == "jump-audio")
+let picker = AudioDevicePicker.make(captureDevices, selected:"ic7100")
+precondition(picker.numberOfItems == captureDevices.count)
+precondition(AudioDevicePicker.selected(picker) == "ic7100")
+precondition(Set(picker.itemTitles).count == captureDevices.count)
+for item in picker.itemArray {
+    picker.select(item)
+    let uid = AudioDevicePicker.selected(picker)!
+    precondition(captureDevices.contains { $0.0 == uid })
+}
+let reordered = AudioDevicePicker.make(captureDevices.reversed(), selected:"usb-b")
+precondition(AudioDevicePicker.selected(reordered) == "usb-b")
+precondition(reordered.selectedItem?.title == "USB Audio CODEC [2]")
+let missing = AudioDevicePicker.make(captureDevices, selected:"unplugged-radio")
+precondition(AudioDevicePicker.selected(missing) == "unplugged-radio")
+precondition(missing.selectedItem?.title == "Unavailable device")
+print("PASS: reproduced original IC-7100 → Jump misrouting; all duplicate device entries retained with stable IDs, unique labels, reorder and unavailable-device preservation")

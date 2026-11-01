@@ -15,7 +15,7 @@ Based on **[XARA by x0rro](https://github.com/x0rro/xara)**. The original projec
 | Processor | Apple Silicon (arm64; M1 or newer) |
 | Operating system | macOS 12 Monterey or newer |
 | Intel Macs | Not supported by the downloadable ZIP; it is not a Universal build |
-| Modem version | XARA 0.1.3; macOS application build 7 |
+| Modem version | XARA 0.1.3; macOS application build 8 |
 | Audio | Native Core Audio; 48 kHz, signed 16-bit mono PCM internally |
 | Signing | Ad-hoc signed; not Developer ID signed or notarized |
 
@@ -107,7 +107,7 @@ The waterfall displays **RX input audio**; it does not mix in generated TX audio
 
 Setup lists audio devices by name. Refresh devices after connecting an interface; an unavailable selection is preserved until you select a replacement.
 
-The current app and release are 0.1.3 / macOS build 7.
+The current app and release are 0.1.3 / macOS build 8.
 
 ## Validation
 

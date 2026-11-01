@@ -121,6 +121,27 @@ extension StationConfiguration {
     }
 }
 
+struct AudioDevicePicker {
+    static func make(_ devices: [(String, String)], selected: String) -> NSPopUpButton {
+        var choices = devices
+        if !choices.contains(where: { $0.0 == selected }) { choices.append((selected, "Unavailable device")) }
+        let groups = Dictionary(grouping: choices, by: { $0.1 })
+        let popup = NSPopUpButton()
+        let menu = NSMenu(); menu.autoenablesItems = false
+        for (uid, description) in choices {
+            let duplicates = (groups[description] ?? []).map { $0.0 }.sorted()
+            let title = duplicates.count > 1 ? "\(description) [\((duplicates.firstIndex(of: uid) ?? 0) + 1)]" : description
+            let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+            item.representedObject = uid; item.toolTip = uid
+            menu.addItem(item)
+        }
+        popup.menu = menu
+        if let item = menu.items.first(where: { $0.representedObject as? String == selected }) { popup.select(item) }
+        return popup
+    }
+    static func selected(_ popup: NSPopUpButton) -> String? { popup.selectedItem?.representedObject as? String }
+}
+
 struct MacReleaseVersion: Equatable, Comparable {
     let components: [Int]
     let build: Int
@@ -365,14 +386,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         let mode = NSPopUpButton()
         let modes = [("hf500", "HF · 500 Hz"), ("hf2300", "HF · 2300 Hz"), ("hf2750", "HF · 2750 Hz"), ("fmnarrow", "FM · Narrow"), ("fmwide", "FM · Wide")]
         mode.addItems(withTitles: modes.map { $0.1 }); mode.selectItem(at: modes.firstIndex { $0.0 == current.mode } ?? 1); add("Modem mode", mode)
-        func deviceMenu(_ kind: String, _ selected: String) -> (NSPopUpButton, [(String, String)]) {
-            var devices = [("default", "System default (receive only)")] + deviceChoices(kind)
-            if !devices.contains(where: { $0.0 == selected }) { devices.append((selected, "Unavailable device")) }
-            let menu = NSPopUpButton(); menu.addItems(withTitles: devices.map { $0.1 }); menu.selectItem(at: devices.firstIndex { $0.0 == selected } ?? 0)
-            return (menu, devices)
+        func deviceMenu(_ kind: String, _ selected: String) -> NSPopUpButton {
+            AudioDevicePicker.make([("default", "System default (receive only)")] + deviceChoices(kind), selected: selected)
         }
-        let (input, inputs) = deviceMenu("capture", current.input); add("Radio audio input", input)
-        let (output, outputs) = deviceMenu("playback", current.output); add("Radio audio output", output)
+        let input = deviceMenu("capture", current.input); add("Radio audio input", input)
+        let output = deviceMenu("playback", current.output); add("Radio audio output", output)
         let ptt = NSPopUpButton()
         let methods = [("off", "Receive only · transmit disabled"), ("rts", "Serial RTS"), ("dtr", "Serial DTR"), ("rigctld", "Hamlib rigctld"), ("cm108", "CM108 USB HID"), ("vox", "VOX")]
         ptt.addItems(withTitles: methods.map { $0.1 }); ptt.selectItem(at: methods.firstIndex { $0.0 == current.ptt } ?? 0); add("PTT method", ptt)
@@ -395,7 +413,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         guard dialog.runModal() == .alertFirstButtonReturn else { return }
         current.call = call.stringValue.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
         current.mode = modes[mode.indexOfSelectedItem].0
-        current.input = inputs[input.indexOfSelectedItem].0; current.output = outputs[output.indexOfSelectedItem].0
+        guard let capture = AudioDevicePicker.selected(input), let playback = AudioDevicePicker.selected(output) else {
+            alert("Check audio selection", "Select an input and output device before applying settings."); return
+        }
+        current.input = capture; current.output = playback
         current.ptt = methods[ptt.indexOfSelectedItem].0
         current.pttAddress = address.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
         current.externalPorts = ports.state == .on
@@ -635,7 +656,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         panel.messageText = "Xara modem for Mac"
         let info = Bundle.main.infoDictionary ?? [:]
         let version = info["CFBundleShortVersionString"] as? String ?? "0.1.3"
-        let build = info["CFBundleVersion"] as? String ?? "7"
+        let build = info["CFBundleVersion"] as? String ?? "8"
         panel.informativeText = "By N4EAC, Eduardo\nXARA \(version) · macOS build \(build)\nOriginal modem by x0rro"
         panel.addButton(withTitle: "GitHub Releases")
         panel.addButton(withTitle: "Original XARA")

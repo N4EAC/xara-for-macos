@@ -1,6 +1,6 @@
 # Upstream alignment and telemetry review
 
-Reviewed October 31, 2026 against original XARA **0.1.3**, commit [`09a9201381b00499ada9d9c816bd05bb8f175705`](https://github.com/x0rro/xara/commit/09a9201381b00499ada9d9c816bd05bb8f175705). The previous macOS distribution used upstream 0.1.1. The current app is **0.1.3 / macOS build 7**.
+Reviewed October 31, 2026 against original XARA **0.1.3**, commit [`09a9201381b00499ada9d9c816bd05bb8f175705`](https://github.com/x0rro/xara/commit/09a9201381b00499ada9d9c816bd05bb8f175705). The previous macOS distribution used upstream 0.1.1. The current app is **0.1.3 / macOS build 8**.
 
 ## Upstream integration
 
@@ -65,7 +65,7 @@ The display clears stale live instruments and preserves the documented connectio
 
 ## GitHub issue review and device selection
 
-Reviewed the fork's [audio-device issue #1](https://github.com/N4EAC/xara-for-macos/issues/1), filed against build 2. The current build uses upstream's newer Rust Core Audio backend. Build 6 additionally preserves a device's usable direction when its driver rejects the other stream-configuration scope. Regression tests cover input-only/output-only errors and multi-buffer aggregate channel counts. The app's inventory was compared with an independent Core Audio implementation on the development Mac: all 10 inputs and 2 outputs matched. The reporter's IC-7100/aggregate-device setup has not been reproduced, so this does not establish that every aspect of the report is resolved.
+Reviewed the fork's [audio-device issue #1](https://github.com/N4EAC/xara-for-macos/issues/1), filed against build 2. The current build uses upstream's newer Rust Core Audio backend. Build 6 additionally preserves a device's usable direction when its driver rejects the other stream-configuration scope. Regression tests cover input-only/output-only errors and multi-buffer aggregate channel counts. The app's inventory was compared with an independent Core Audio implementation on the development Mac: all 10 inputs and 2 outputs matched. Jeremy's November 1 build 7 attachment confirmed a separate native selection bug: three same-named USB inputs and three same-named USB outputs were present. `NSPopUpButton.addItems(withTitles:)` collapses duplicate titles, shifting later selection indices against the original device array; selecting IC-7100 therefore resolved to Jump Desktop Audio. This exact mapping was reproduced with a synthetic version of his device ordering. Build 8 creates explicit menu items carrying their stable device IDs, gives duplicate names distinct labels, and retrieves selection from the item instead of an external array index. Tests cover every device, duplicate labels, reordered enumeration and unavailable devices. His Setup-tab workaround successfully selected the IC-7100 aggregate at 48 kHz and later established radio sessions; the physical setup still needs build 8 field confirmation.
 
 Shared native/web Setup now uses device-name dropdowns rather than datalist autocomplete, which could show encoded UIDs and filter suggestions by the existing value. Identifiers remain stable in settings; unavailable selections are preserved across refresh/hot-plug instead of silently selecting another output. Native Station & Radio already uses named popup menus.
 
@@ -108,6 +108,7 @@ There is no app/tool installer, automatic updater, or automatic rebuild/restart.
 - Additional MYCALL regressions verify the exact `N4EAC` retry, full-list matching, live HF/FM payload transfer, unchanged registration timing, and preserved rejection/deferred changes. This confirms the modem behavior; the reported MacWinlink incident still requires field confirmation.
 - Clippy for macOS app features/all targets passed with warnings denied; rustfmt and whitespace checks passed.
 - Browser regression checks passed for the +10 dB slider command, Saved feedback, diagnostics, waveform display, safe payload text, setup, export, responsive layout, stale values, and reconnection behavior.
+- Native regression checks reproduce the old IC-7100-to-Jump mapping and verify stable device-ID selection, distinct duplicate names, reordered lists and missing-device preservation.
 - Native profile persistence and compatibility checks passed using `scripts/test_macos_profiles.sh`; the final native app compiled and was signed.
 - Native About construction and release-version parsing/comparison were tested with active preconditions. The user-requested GitHub metadata endpoint was checked live. Malformed tags and non-public release metadata were rejected.
 - The local macOS app was rebuilt with hardened runtime, its signature verified, and the ZIP checked against every app-bundle file.
@@ -119,12 +120,12 @@ Repeat the main test suite with:
 cargo test --locked --release --workspace --no-default-features --features xara/macos-app
 ```
 
-The October 30 [security review](SECURITY_REVIEW.md) remains evidence for build 2; its artifact hashes and test counts are historical. Build 7 retains the private-listener and settings-permission defaults. The manual GitHub metadata check remains the disclosed network addition; automatic operational diagnostic files are the newly requested storage addition.
+The October 30 [security review](SECURITY_REVIEW.md) remains evidence for build 2; its artifact hashes and test counts are historical. Build 8 retains the private-listener and settings-permission defaults. The manual GitHub metadata check remains the disclosed network addition; automatic operational diagnostic files are the newly requested storage addition.
 
-## Build 7 package
+## Build 8 package
 
-App: `target/macos/XARA.app`. ZIP: `target/release-assets/v0.1.3-macos.7/XARA-macOS-arm64.zip`. Apple Silicon arm64, macOS 12+; ad-hoc signed with hardened runtime, not notarized.
+App: `target/macos/XARA.app`. ZIP: `target/release-assets/v0.1.3-macos.8/XARA-macOS-arm64.zip`. Apple Silicon arm64, macOS 12+; ad-hoc signed with hardened runtime, not notarized.
 
 ```text
-e61953b64c5cc5e42c70f244fe29683a34c8ce8d2c49abb405e2638d4f5b6892  XARA-macOS-arm64.zip
+0c8f7db2cacf9630ba94dcc221c11b1cde4a9afcce9d07f18f890905bcb22eb2  XARA-macOS-arm64.zip
 ```
