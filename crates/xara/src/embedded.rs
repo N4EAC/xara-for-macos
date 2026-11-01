@@ -186,6 +186,9 @@ fn lock<T>(value: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
     value.lock().unwrap_or_else(|e| e.into_inner())
 }
 fn update(status: &Mutex<Status>, state: i32, text: String) {
+    if state != 2 {
+        crate::diagnostics::record(format_args!("engine_status state={state} detail={text:?}"));
+    }
     *lock(status) = Status { state, text };
 }
 
@@ -249,6 +252,30 @@ fn run(base: Config, dir: PathBuf, stop: Arc<AtomicBool>, status: Arc<Mutex<Stat
             validate: Box::new(move |saved| check.with_saved(saved).map(|_| ())),
             list: Box::new(devices),
         }));
+        crate::diagnostics::record(format_args!(
+            "engine_start mode={} capture={:?} playback={:?} transmit={} drive_db={} lead_ms={} tail_ms={} external_ports={} command_port={} data_port={} kiss_port={:?}",
+            if cfg.fm.is_some() { "FM" } else { "HF" },
+            cfg.capture,
+            cfg.playback,
+            cfg.ptt.is_some(),
+            cfg.drive,
+            cfg.timing.lead.as_millis(),
+            cfg.timing.tail.as_millis(),
+            cfg.host_ports,
+            cfg.port,
+            cfg.port + 1,
+            cfg.kiss_port
+        ));
+        let ptt_method = match &cfg.ptt {
+            None => "off",
+            Some(PttSpec::Vox) => "vox",
+            Some(PttSpec::Rts(_)) => "rts",
+            Some(PttSpec::Dtr(_)) => "dtr",
+            Some(PttSpec::Rigctld(_)) => "rigctld",
+            Some(PttSpec::Cm108 { .. } | PttSpec::Cm108Usb { .. }) => "cm108",
+            Some(PttSpec::Trusdx) => "trusdx",
+        };
+        crate::diagnostics::record(format_args!("ptt_configuration method={ptt_method}"));
         let capture = decode_device(&cfg.capture)?;
         let mut io = if cfg.ptt.is_none() {
             audio::coreaudio::CoreAudioIo::open_capture(&capture)
@@ -259,6 +286,7 @@ fn run(base: Config, dir: PathBuf, stop: Arc<AtomicBool>, status: Arc<Mutex<Stat
         let tx_path =
             TxPath::new(audio::samples(cfg.timing.lead), TxBuffer::default(), io.path().map_err(|e| e.to_string())?);
         let budget = tx_path.budget();
+        crate::diagnostics::record(format_args!("initial_timing {budget}"));
         let host = cfg.host()?;
         let opts = Options {
             drive_db: cfg.drive,
@@ -393,10 +421,15 @@ fn serve<M: Modem>(
                 token: Some(token.into()),
                 settings: Some(settings.clone()),
                 hosts: Vec::new(),
+                diagnostics: Some(Arc::new(crate::diagnostics::snapshot)),
             },
         )
         .map_err(|e| e.to_string())?;
         *ui_port = server.addr.port();
+        crate::diagnostics::record(format_args!(
+            "private_ui_bound address=127.0.0.1:{} authentication=required",
+            *ui_port
+        ));
         let url = format!("http://127.0.0.1:{}/?token={token}", *ui_port);
         ui = Some(server);
         tnc.set_telemetry(telemetry);
@@ -422,6 +455,18 @@ fn serve<M: Modem>(
             tx_path.start(io).map_err(|e| e.to_string())?;
         }
         let mut budget: Option<crate::audio::txpath::Budget> = None;
+        let mut report_at = Instant::now();
+        let mut blocks = 0u64;
+        let mut rx_energy = 0f64;
+        let mut rx_peak = 0i32;
+        let mut rx_clips = 0u64;
+        let mut tx_peak = 0i32;
+        let mut tx_energy = 0f64;
+        let mut tx_samples = 0u64;
+        let mut tx_clips = 0u64;
+        let mut max_wait = Duration::ZERO;
+        let mut max_process = Duration::ZERO;
+        let mut last_transition = (String::new(), false, false);
         let pumped = (|| {
             while !stop.load(Ordering::SeqCst) {
                 let reading = Instant::now();
@@ -463,7 +508,69 @@ fn serve<M: Modem>(
                     }
                 }
                 let asserted = ptt.as_ref().is_some_and(PttCtl::keyed);
-                tnc.publish_output(if cfg.ptt.is_some() { tx_path.sent() } else { &input[..0] }, asserted);
+                let sent = if cfg.ptt.is_some() { tx_path.sent() } else { &input[..0] };
+                tnc.publish_output(sent, asserted);
+                blocks += 1;
+                max_wait = max_wait.max(waited);
+                max_process = max_process.max(reading.elapsed().saturating_sub(waited));
+                for &x in &input {
+                    let a = i32::from(x).abs();
+                    rx_peak = rx_peak.max(a);
+                    rx_energy += f64::from(x).powi(2);
+                    rx_clips += u64::from(a >= 32767);
+                }
+                for &x in sent {
+                    let a = i32::from(x).abs();
+                    tx_peak = tx_peak.max(a);
+                    tx_energy += f64::from(x).powi(2);
+                    tx_samples += 1;
+                    tx_clips += u64::from(a >= 32767);
+                }
+                let link = tnc.station().link();
+                let transition = (link.state, asserted, forced);
+                if transition != last_transition {
+                    crate::diagnostics::record(format_args!(
+                        "modem_state state={:?} ptt={} forced_off={} level={} attempts={}",
+                        transition.0, asserted, forced, link.level, link.attempts
+                    ));
+                    last_transition = transition;
+                }
+                if report_at.elapsed() >= Duration::from_secs(10) {
+                    let rms = (rx_energy / (blocks * audio::BLOCK as u64) as f64).sqrt() / 32768.0;
+                    crate::diagnostics::record(format_args!(
+                        "audio_health wall_s={:.3} blocks={} rx_rms_dbfs={:.1} rx_peak={} rx_full_scale={} tx_peak={} tx_full_scale={} max_read_ms={:.2} max_process_ms={:.2} backlog={:?} drive_db={} rx_silent={} clipping={} slow_processing={} tx_rms_dbfs={:.1} afc_hz={:?}",
+                        report_at.elapsed().as_secs_f64(),
+                        blocks,
+                        20.0 * rms.max(1e-6).log10(),
+                        rx_peak,
+                        rx_clips,
+                        tx_peak,
+                        tx_clips,
+                        max_wait.as_secs_f64() * 1000.0,
+                        max_process.as_secs_f64() * 1000.0,
+                        backlog,
+                        drive,
+                        rx_peak == 0,
+                        rx_clips > 0 || tx_clips > 0,
+                        max_process > Duration::from_millis(10),
+                        20.0 * ((tx_energy / tx_samples.max(1) as f64).sqrt() / 32768.0).max(1e-6).log10(),
+                        link.afc_hz
+                    ));
+                    if let Some(b) = &budget {
+                        crate::diagnostics::record(format_args!("current_timing {b}"));
+                    }
+                    report_at = Instant::now();
+                    blocks = 0;
+                    rx_energy = 0.0;
+                    rx_peak = 0;
+                    tx_peak = 0;
+                    rx_clips = 0;
+                    tx_clips = 0;
+                    tx_energy = 0.0;
+                    tx_samples = 0;
+                    max_wait = Duration::ZERO;
+                    max_process = Duration::ZERO;
+                }
                 if tnc.restart_requested() {
                     return Ok(true);
                 }
@@ -600,6 +707,40 @@ pub unsafe extern "C" fn xara_embedded_devices(output: *mut c_char, capacity: us
 #[unsafe(no_mangle)]
 pub extern "C" fn xara_embedded_can_configure() -> i32 {
     i32::from(CAN_CONFIGURE.load(Ordering::SeqCst))
+}
+
+/// # Safety
+/// directory is a valid NUL-terminated UTF-8 path; output has capacity writable bytes or is null.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xara_diagnostics_init(
+    directory: *const c_char,
+    output: *mut c_char,
+    capacity: usize,
+) -> usize {
+    if directory.is_null() {
+        return write_text("Missing diagnostics directory", output, capacity);
+    }
+    let result = unsafe { CStr::from_ptr(directory) }.to_str().map_err(|e| e.to_string()).and_then(|s| {
+        let path = Path::new(s);
+        private_state_dir(path.parent().ok_or("Missing state directory")?)?;
+        crate::diagnostics::init(path).map_err(|e| e.to_string())
+    });
+    write_text(&result.err().unwrap_or_default(), output, capacity)
+}
+/// # Safety
+/// text is a valid NUL-terminated UTF-8 string containing only operational metadata.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xara_diagnostics_event(text: *const c_char) {
+    if !text.is_null() {
+        crate::diagnostics::record(format_args!("native {}", unsafe { CStr::from_ptr(text) }.to_string_lossy()));
+    }
+}
+/// # Safety
+/// output has capacity writable bytes or is null. Return includes the NUL terminator.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xara_diagnostics_export(output: *mut c_char, capacity: usize) -> usize {
+    let text = crate::diagnostics::snapshot().unwrap_or_else(|e| format!("Diagnostic export failed: {e}"));
+    write_text(&text, output, capacity)
 }
 
 #[cfg(test)]

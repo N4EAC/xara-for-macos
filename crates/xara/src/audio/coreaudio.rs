@@ -233,6 +233,15 @@ impl CoreAudioIo {
         let playback = playback
             .map(|(name, radio, buf)| check_playback(&devs, name, radio).map(|d| (name, d, buf)))
             .transpose()?;
+        crate::diagnostics::record(format_args!(
+            "audio_open capture_name={:?} capture_uid={:?} input_channels={} hardware_rate={} modem_rate={} channel=1 output_uid={:?}",
+            rec_dev.name,
+            rec_dev.uid,
+            rec_dev.inputs,
+            rec_dev.rate,
+            RATE,
+            playback.as_ref().map(|(_, d, _)| &d.uid)
+        ));
         let _opening = Opening::watch();
         let shared = Arc::new(Shared::new());
         let fmt = StreamFormat::s16_mono(RATE);
@@ -241,6 +250,7 @@ impl CoreAudioIo {
         let play = playback
             .map(|(name, d, buf)| {
                 let (n, latency) = (tx_buffers(d), scaled(d, d.out_latency));
+                crate::diagnostics::record(format_args!("audio_output uid={:?} channels={} hardware_rate={} io_frames={} queue_buffers={} queue_block={} latency_frames={}", d.uid, d.outputs, d.rate, d.io_frames, n, BLOCK, latency));
                 info!(
                     "coreaudio playback {name:?}: device IO {} frames, {n} buffers of {BLOCK} frames, \
                      device latency {latency} frames",
@@ -306,6 +316,7 @@ impl Audio for CoreAudioIo {
         let overruns = st.overruns;
         drop(st);
         if self.overruns.due(overruns) {
+            crate::diagnostics::record(format_args!("audio_overrun capture={:?} count={overruns}", self.capture));
             say!("coreaudio capture {:?}: overrun, dropped audio ({overruns} so far)", self.capture);
         }
         Ok(())
@@ -338,6 +349,7 @@ impl Audio for CoreAudioIo {
         let q = Queue { frames: st.tx.len() + st.inflight, floor: st.inflight, underruns: st.underruns };
         drop(st);
         if play.underruns.due(q.underruns) {
+            crate::diagnostics::record(format_args!("audio_underrun playback={:?} count={}", play.name, q.underruns));
             say!("coreaudio playback {:?}: underrun ({} so far)", play.name, q.underruns);
         }
         Ok(Some(q))

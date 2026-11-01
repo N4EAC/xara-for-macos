@@ -66,6 +66,7 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo clippy --locked -p xara --no-default-features --features macos-app --all-targets -- -D warnings
       - run: cargo test --locked --release --workspace --no-default-features --features xara/macos-app
+      - run: ./scripts/test_macos_profiles.sh
       - run: ./scripts/build_macos_ui.sh
       - run: ditto -c -k --sequesterRsrc --keepParent target/macos/XARA.app target/macos/XARA-macos.zip
       - uses: actions/upload-artifact@v4

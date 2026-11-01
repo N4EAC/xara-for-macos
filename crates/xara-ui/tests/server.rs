@@ -580,3 +580,43 @@ fn private_workspace_cannot_start_without_a_valid_enabled_token() {
         assert!(UiServer::bind("127.0.0.1", 0, feed, INFO, access).is_err());
     }
 }
+
+#[test]
+fn diagnostics_export_requires_authenticated_same_origin_access() {
+    use std::sync::Arc;
+    let (_, addr) = start_with(Access {
+        private: true,
+        diagnostics: Some(Arc::new(|| Ok("diagnostic-fixture".into()))),
+        ..controlled()
+    });
+    for extra in [
+        String::new(),
+        cookie(addr, "wrong"),
+        format!("{}\r\nOrigin: https://evil.example", cookie(addr, TOKEN)),
+        format!(
+            "{}\r\nSec-Fetch-Site: cross-site\r\nSec-Fetch-Mode: navigate\r\nSec-Fetch-Dest: document",
+            cookie(addr, TOKEN)
+        ),
+    ] {
+        let (status, body) = get(addr, &format!("GET /diagnostics.txt HTTP/1.1{extra}"));
+        assert_eq!(status, "HTTP/1.1 403 Forbidden");
+        assert!(!body.contains("diagnostic-fixture"));
+    }
+    let (status, body) =
+        get(addr, &format!("GET /diagnostics.txt HTTP/1.1{}\r\nSec-Fetch-Site: same-origin", cookie(addr, TOKEN)));
+    assert_eq!(status, "HTTP/1.1 200 OK");
+    assert_eq!(body, "diagnostic-fixture");
+    let (_, missing) = start_with(controlled());
+    assert_eq!(
+        get(missing, &format!("GET /diagnostics.txt HTTP/1.1{}", cookie(missing, TOKEN))).0,
+        "HTTP/1.1 404 Not Found"
+    );
+    let (_, failed) = start_with(Access {
+        diagnostics: Some(Arc::new(|| Err(std::io::Error::other("disk failure")))),
+        ..controlled()
+    });
+    assert_eq!(
+        get(failed, &format!("GET /diagnostics.txt HTTP/1.1{}", cookie(failed, TOKEN))).0,
+        "HTTP/1.1 503 Service Unavailable"
+    );
+}

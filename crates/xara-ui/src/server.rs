@@ -66,6 +66,8 @@ impl Controls for Controller {
     }
 }
 
+pub type DiagnosticExport = Arc<dyn Fn() -> io::Result<String> + Send + Sync>;
+
 #[derive(Clone, Default)]
 pub struct Access {
     pub control: bool,
@@ -74,6 +76,7 @@ pub struct Access {
     pub token: Option<String>,
     pub hosts: Vec<String>,
     pub settings: Option<Arc<Settings>>,
+    pub diagnostics: Option<DiagnosticExport>,
 }
 
 struct Ctx {
@@ -522,6 +525,37 @@ fn route(mut s: TcpStream, r: &Request, joins: &Sender<Msg>, ctx: &Ctx) -> io::R
         "/style.css" => respond(&mut s, "200 OK", "text/css; charset=utf-8", ctx.pages.style.as_bytes()),
         "/common.js" => respond(&mut s, "200 OK", "text/javascript; charset=utf-8", COMMON_JS.as_bytes()),
         "/common.css" => respond(&mut s, "200 OK", "text/css; charset=utf-8", COMMON_CSS.as_bytes()),
+        "/diagnostics.txt" => {
+            if !authorized(r, ctx)
+                || !same_origin(r)
+                || r.header("sec-fetch-site").is_some_and(|v| v != "same-origin" && v != "none")
+            {
+                return respond(&mut s, "403 Forbidden", "text/plain", b"authenticated same-origin access required\n");
+            }
+            match &ctx.access.diagnostics {
+                Some(export) => match export() {
+                    Ok(text) => respond_with(
+                        &mut s,
+                        "200 OK",
+                        "text/plain; charset=utf-8",
+                        "Content-Disposition: attachment; filename=\"XARA-diagnostics.txt\"\r\n",
+                        text.as_bytes(),
+                    ),
+                    Err(_) => respond(
+                        &mut s,
+                        "503 Service Unavailable",
+                        "text/plain",
+                        b"Diagnostic writer unavailable; use Modem > Export Diagnostic Log or retry.\n",
+                    ),
+                },
+                None => respond(
+                    &mut s,
+                    "404 Not Found",
+                    "text/plain",
+                    b"Automatic diagnostics are available in the macOS app.\n",
+                ),
+            }
+        }
         "/ws" => websocket(s, r, joins, ctx),
         "/stream" => stream(s, joins, ctx),
         _ => respond(&mut s, "404 Not Found", "text/plain", b"not found\n"),

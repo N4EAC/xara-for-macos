@@ -1,6 +1,6 @@
 # Upstream alignment and telemetry review
 
-Reviewed October 31, 2026 against original XARA **0.1.3**, commit [`09a9201381b00499ada9d9c816bd05bb8f175705`](https://github.com/x0rro/xara/commit/09a9201381b00499ada9d9c816bd05bb8f175705). The previous macOS distribution used upstream 0.1.1. The current app is **0.1.3 / macOS build 6**.
+Reviewed October 31, 2026 against original XARA **0.1.3**, commit [`09a9201381b00499ada9d9c816bd05bb8f175705`](https://github.com/x0rro/xara/commit/09a9201381b00499ada9d9c816bd05bb8f175705). The previous macOS distribution used upstream 0.1.1. The current app is **0.1.3 / macOS build 7**.
 
 ## Upstream integration
 
@@ -25,6 +25,8 @@ Intentional differences from upstream:
 | Repeated host initialization | An unchanged full `MYCALL` list is acknowledged while busy without reconfiguration; different/invalid lists and idle initialization retain the original behavior |
 | Saved settings | Owner-only directory/files; preserved encoded Core Audio UIDs; automatic TX-drive persistence |
 | Drive range | −30 to +10 dB in the native UI and host controls; the +10 maximum is an intentional extension to upstream's 0 dB maximum |
+| Radio profiles | Private named snapshots of all native station/radio settings, including drive/timing; explicit load review and idle guard |
+| Diagnostic logging | Automatic local operational logs, bounded to two 1 MiB files; authenticated/manual export; no payload/audio capture |
 | Main UI | Additional instrument panels, per-connection bytes, protocol indicators, diagnostics, and accurate output/PTT telemetry |
 | CLI-only features | Explicit `--record`/`--log`, digipeater configuration, optional registered speeds, and experimental `(tr)uSDX` remain available in source/CLI configurations; the standard native app does not expose or enable them |
 | Startup installation | The upstream launchd example is retained as documentation; the app build does not install a service or login item |
@@ -71,6 +73,22 @@ The waterfall is explicitly labelled **RX waterfall / Live RX spectrum**. It rec
 
 The original repository remains at the reviewed 0.1.3 commit. Its two open issues, [wider xara-monitor bandwidth #32](https://github.com/x0rro/xara/issues/32) and [Raspberry Pi GPIO PTT #27](https://github.com/x0rro/xara/issues/27), are feature requests outside this native macOS build. Closed reports concerning SSIDs, HF PTT-tail timing, FM timing and host descriptor cleanup were checked against the incorporated upstream changes and this fork's lifecycle tests. No new PHY/ARQ modifications were needed.
 
+## Named radio profiles
+
+The native Profiles menu saves/replaces/loads/deletes up to 32 named configurations. A profile includes callsign, HF/FM mode, stable input/output UIDs, PTT method and endpoint, external listener enablement and ports, TX drive, and PTT lead/tail. Saving merges active persisted web/drive overrides with native-only settings. Loading opens Station & Radio for review; it does not key or start a radio automatically. Both the opening and application paths check modem-idle state. Device menus preserve unavailable UIDs. Applying a profile replaces all active saved radio overrides, so the previous radio's drive/timing cannot override the loaded profile.
+
+Profiles use a versioned, size-bounded JSON file with 0600 permissions in the 0700 app-state directory. Read/write reject symlinks, hard links, nonregular files, incorrect ownership, unsupported schema, malformed configurations, duplicate names/IDs, and invalid or excessive names. Writes use an exclusive temporary file, synchronization and atomic rename. New optional station fields retain compatibility with older saved native settings. Deleting a snapshot does not mutate active configuration; replacements and deletions are explicit.
+
+The native profile regression script checks two different radio configurations end-to-end through serialization, saved-setting merges, legacy decoding, invalid settings/names, duplicates, permissions and unsafe/malformed-file rejection. It runs in macOS CI and starts no audio or PTT.
+
+## Automatic operational diagnostics
+
+Build 7 initializes an owner-only rotating log before audio permission is requested. The background writer uses a 256-entry nonblocking queue with per-record length limits, UTC timestamps, a 1 MiB current file and a 1 MiB previous file. File paths reject symlinks/nonregular files/hard links; the app state and diagnostic directories are private. Rotations and launch retain only the newest two files. Export reports queue drops and the last write failure; pending records are synchronized before the snapshot. An unresponsive writer times out rather than blocking the UI indefinitely.
+
+Records cover native OS/build/permission state, complete available audio inventory and failed property operations/scopes, input/output selection, rates/channels/latency, initial/current timing budgets, PTT configuration and safety release, engine errors, sanitized command kinds/results, modem/PTT transitions and 10-second signal/timing summaries. Internal panic location/backtrace is included without the panic payload. Audio buffers, payload previews, raw host commands, callsign configuration dumps and authenticated UI URLs/tokens do not enter the log. This is deliberate allowlisted instrumentation, not a copy of console/monitor text. Device IDs/names and diagnostic paths remain potentially identifying and are disclosed before export.
+
+The macOS Modem menu exports without a running engine. The Diagnostics tab exports through an authenticated same-origin `/diagnostics.txt` request and a local blob download. The route requires the control cookie even outside private mode, rejects foreign Origin/cross-site navigation, uses no-store headers and returns explicit unavailable/error responses. No new listener or outbound request was introduced. Tests cover retention/restart/permissions, symlink/hard-link rejection, worker snapshots, control-character limits, panic payload exclusion, HTTP authentication and export failure handling. Browser tests cover successful and failed exports without disabling later retries. The original modem PHY/ARQ remains unchanged.
+
 ## About and Check for Updates
 
 The macOS application menu's About panel identifies **Xara modem for Mac — By N4EAC, Eduardo**, displays the bundle's version/build, credits x0rro, and offers GitHub Releases and the original repository.
@@ -86,10 +104,11 @@ There is no app/tool installer, automatic updater, or automatic rebuild/restart.
 
 ## Validation
 
-- **455 workspace tests passed; 8 ignored** because they require physical loopback or external VARA captures. This includes simulated HF/FM audio links, DSP/protocol vectors, byte counters, host interfaces, private UI access, drive persistence across a full engine restart, +10 dB limits, PTT tail/controller state, and device-output meter behavior.
+- **459 workspace tests passed; 8 ignored** because they require physical loopback or external VARA captures. This includes simulated HF/FM audio links, DSP/protocol vectors, byte counters, host interfaces, private UI access, drive persistence across a full engine restart, +10 dB limits, PTT tail/controller state, and device-output meter behavior.
 - Additional MYCALL regressions verify the exact `N4EAC` retry, full-list matching, live HF/FM payload transfer, unchanged registration timing, and preserved rejection/deferred changes. This confirms the modem behavior; the reported MacWinlink incident still requires field confirmation.
 - Clippy for macOS app features/all targets passed with warnings denied; rustfmt and whitespace checks passed.
 - Browser regression checks passed for the +10 dB slider command, Saved feedback, diagnostics, waveform display, safe payload text, setup, export, responsive layout, stale values, and reconnection behavior.
+- Native profile persistence and compatibility checks passed using `scripts/test_macos_profiles.sh`; the final native app compiled and was signed.
 - Native About construction and release-version parsing/comparison were tested with active preconditions. The user-requested GitHub metadata endpoint was checked live. Malformed tags and non-public release metadata were rejected.
 - The local macOS app was rebuilt with hardened runtime, its signature verified, and the ZIP checked against every app-bundle file.
 - No on-air session or physical audio/USB/PTT hardware validation was performed for this revision. The eight ignored tests remain explicit validation limits.
@@ -100,12 +119,12 @@ Repeat the main test suite with:
 cargo test --locked --release --workspace --no-default-features --features xara/macos-app
 ```
 
-The October 30 [security review](SECURITY_REVIEW.md) remains evidence for build 2; its artifact hashes and test counts are historical. Build 6 retains the private-listener and settings-permission defaults. The new user-requested GitHub metadata check is the explicitly disclosed network addition.
+The October 30 [security review](SECURITY_REVIEW.md) remains evidence for build 2; its artifact hashes and test counts are historical. Build 7 retains the private-listener and settings-permission defaults. The manual GitHub metadata check remains the disclosed network addition; automatic operational diagnostic files are the newly requested storage addition.
 
-## Build 6 package
+## Build 7 package
 
-App: `target/macos/XARA.app`. ZIP: `target/release-assets/v0.1.3-macos.6/XARA-macOS-arm64.zip`. Apple Silicon arm64, macOS 12+; ad-hoc signed with hardened runtime, not notarized.
+App: `target/macos/XARA.app`. ZIP: `target/release-assets/v0.1.3-macos.7/XARA-macOS-arm64.zip`. Apple Silicon arm64, macOS 12+; ad-hoc signed with hardened runtime, not notarized.
 
 ```text
-e8a86ad09df505b1f6b7aa003185efffd3347cb131b03f71815e9e3a37c41bfd  XARA-macOS-arm64.zip
+e61953b64c5cc5e42c70f244fe29683a34c8ce8d2c49abb405e2638d4f5b6892  XARA-macOS-arm64.zip
 ```

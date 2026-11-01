@@ -390,6 +390,7 @@ impl PttCtl {
         let (ltx, lrx) = mpsc::channel::<String>();
         spawn("ptt-log", move || {
             for m in lrx {
+                crate::diagnostics::record(format_args!("ptt_safety {m}"));
                 say!("{m}");
             }
         });

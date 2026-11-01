@@ -81,6 +81,10 @@
   </section>
 </div>
 <div id="panel-diagnostics" role="tabpanel" aria-labelledby="tab-diagnostics" class="diagnostics-grid" hidden>
+  <section class="card"><div class="card-head"><h2>Diagnostic log</h2><button id="diagnostic-export" class="btn" type="button">Export diagnostic log</button></div>
+    <p class="hint">The macOS app automatically saves operational diagnostics locally: current and previous logs, up to 1 MiB each. Includes OS/build, audio device names and IDs, channels, rates, latency, errors, and numeric audio/timing summaries. No audio recordings, message contents, raw host commands, or authentication tokens. Nothing is uploaded automatically.</p>
+    <p id="diagnostic-export-status" class="hint" role="status"></p>
+  </section>
   <section class="card">
     <div class="card-head"><h2>Telemetry</h2></div>
     <dl class="diagnostic-list">
@@ -123,7 +127,7 @@
       <label>PTT tail · ms<input name="ptt-tail-ms" type="number" min="0" max="1000" step="10"></label>
     </fieldset></form>
     <div class="settings-bottom"><p class="hint">Empty fields inherit command-line settings. Changes restart the modem while idle.<br>Audio devices belong to the computer running the modem.</p><div class="buttons"><button id="set-devices" class="btn" type="button" disabled>Refresh devices</button><button id="set-reset" class="btn" type="button" disabled>Use command line</button><button id="set-save" class="btn primary" type="button" disabled>Save and restart</button></div></div>
-    <p class="hint">Saving stores station, audio, and timing settings on this computer. TX drive is saved automatically when changed. Received data and audio are not recorded by this UI. Export saves the selected monitor text. Browser storage remembers display preferences.</p>
+    <p class="hint">Saving stores station, audio, and timing settings on this computer. TX drive is saved automatically when changed. Operational diagnostics are saved automatically by the macOS app (up to 2 MiB; see Diagnostics). Received data and audio are not recorded by this UI. Export saves the selected monitor text. Browser storage remembers display preferences. Radio profiles are saved and loaded from the macOS app’s Profiles menu.</p>
     <p id="set-msg" class="hint" role="status"></p>
   </section>
 </div>

@@ -4,11 +4,11 @@ Review date: October 30, 2026. Baseline: commit `85783fb` / published release `v
 
 **Result:** No evidence of malware, analytics, credential harvesting, hidden startup persistence, automatic updates, or unsolicited Internet calls was found in the reviewed application source. Concrete local-access and privacy weaknesses were identified and corrected. This is a source review with targeted tests and dependency checks, not a guarantee that every possible vulnerability has been eliminated.
 
-**Publication status:** This audit describes historical build 2. The current release is `v0.1.3-macos.6`; see [UPSTREAM_REVIEW.md](UPSTREAM_REVIEW.md) for its scope and validation. Superseded release downloads/tags have been removed; Git source history and local archived packages remain available for traceability.
+**Publication status:** This audit describes historical build 2. The current release is `v0.1.3-macos.7`; see [UPSTREAM_REVIEW.md](UPSTREAM_REVIEW.md) for its scope and validation. Superseded release downloads/tags have been removed; Git source history and local archived packages remain available for traceability.
 
 ## October 31 update scope
 
-The local 0.1.3 / application build 6 integrates upstream Core Audio/latency changes, adds automatic owner-only TX-drive persistence, user-initiated About links, and a manual GitHub release-version check, and retains the security defaults described here. The original audit evidence, counts, and hashes below describe the published build 2, not a new security certification of build 6. See [UPSTREAM_REVIEW.md](UPSTREAM_REVIEW.md) for the new validation and artifact information. The native app still does not enable file logging, audio recording, startup installation, or automatic Internet requests. The new Check for Updates menu fetches public release metadata only when selected; it does not download/install apps or development tools, rebuild code, or restart the modem.
+The local 0.1.3 / application build 7 integrates upstream Core Audio/latency changes, adds automatic owner-only TX-drive persistence, user-initiated About links, and a manual GitHub release-version check, and retains the security defaults described here. The original audit evidence, counts, and hashes below describe the published build 2, not a new security certification of build 7. See [UPSTREAM_REVIEW.md](UPSTREAM_REVIEW.md) for the new validation and artifact information. Build 7 adds user-requested automatic operational file logging, limited to two owner-only 1 MiB files, with explicit disclosure and manual export. The logger excludes audio/message contents, raw host commands, and UI tokens; it includes device IDs and operational metadata. Named radio profiles are an additional explicitly requested owner-only local settings file, with guarded load/review and atomic writes. These additions create no network listener or outbound request. The native app does not enable audio recording, startup installation, or automatic Internet requests. The new Check for Updates menu fetches public release metadata only when selected; it does not download/install apps or development tools, rebuild code, or restart the modem.
 
 ## Scope and method
 
@@ -120,7 +120,7 @@ SHA-256:
 0b32a00fc1b6efae47768df62b2870609d60f5dd573ad1bc5490afcbb390b23f  XARA-macOS-arm64.zip
 ```
 
-Historical build 1/2 ZIPs are retained locally under `target/release-assets/v0.1.1-macos.1/` and `target/release-assets/v0.1.1-macos.2/`. The current release assets are under `target/release-assets/v0.1.3-macos.6/`.
+Historical build 1/2 ZIPs are retained locally under `target/release-assets/v0.1.1-macos.1/` and `target/release-assets/v0.1.1-macos.2/`. The current release assets are under `target/release-assets/v0.1.3-macos.7/`.
 
 ## Repeating the checks
 

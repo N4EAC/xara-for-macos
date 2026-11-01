@@ -63,7 +63,7 @@ fn say(args: fmt::Arguments) {
     write(false, args);
 }
 
-fn stamp(t: SystemTime) -> String {
+pub(crate) fn stamp(t: SystemTime) -> String {
     let d = t.duration_since(UNIX_EPOCH).unwrap_or_default();
     let (days, s) = (d.as_secs() / 86400, d.as_secs() % 86400);
     let (y, m, day) = civil(days);

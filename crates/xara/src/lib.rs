@@ -4,6 +4,7 @@ pub mod audio;
 #[cfg(target_os = "macos")]
 mod cf;
 pub mod cli;
+pub mod diagnostics;
 pub mod flac;
 #[cfg(target_os = "macos")]
 mod hid;

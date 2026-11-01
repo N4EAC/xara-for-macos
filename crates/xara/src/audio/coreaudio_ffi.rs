@@ -147,6 +147,7 @@ fn status(what: &str, s: OsStatus) -> io::Result<()> {
     if s == 0 {
         return Ok(());
     }
+    crate::diagnostics::record(format_args!("coreaudio_error operation={what:?} status={s}"));
     let b = s.to_be_bytes();
     let code = if b.iter().all(|c| c.is_ascii_graphic()) {
         format!("'{}'", String::from_utf8_lossy(&b))
@@ -252,8 +253,20 @@ pub fn devices() -> io::Result<Vec<DeviceInfo>> {
         .map_err(|e| io::Error::other(format!("listing audio devices: {e}")))?;
     let mut v = Vec::new();
     for id in ids {
-        let Ok(uid) = string_property(id, DEVICE_UID) else { continue };
-        let Some((inputs, outputs)) = device_channels(channels(id, SCOPE_INPUT), channels(id, SCOPE_OUTPUT)) else {
+        let uid = match string_property(id, DEVICE_UID) {
+            Ok(uid) => uid,
+            Err(e) => {
+                crate::diagnostics::record(format_args!("device_skipped id={id} uid_error={e:?}"));
+                continue;
+            }
+        };
+        let (input, output) = (channels(id, SCOPE_INPUT), channels(id, SCOPE_OUTPUT));
+        if input.is_err() || output.is_err() {
+            crate::diagnostics::record(format_args!(
+                "device_scope id={id} uid={uid:?} input={input:?} output={output:?}"
+            ));
+        }
+        let Some((inputs, outputs)) = device_channels(input, output) else {
             continue;
         };
         v.push(DeviceInfo {
@@ -268,6 +281,23 @@ pub fn devices() -> io::Result<Vec<DeviceInfo>> {
             id,
             uid,
         });
+    }
+    crate::diagnostics::record(format_args!("device_inventory count={}", v.len()));
+    for d in &v {
+        crate::diagnostics::record(format_args!(
+            "device id={} name={:?} uid={:?} inputs={} outputs={} transport={:#x} rate={} io_frames={} in_latency={} out_latency={} alive={}",
+            d.id,
+            d.name,
+            d.uid,
+            d.inputs,
+            d.outputs,
+            d.transport,
+            d.rate,
+            d.io_frames,
+            d.in_latency,
+            d.out_latency,
+            alive(d.id)
+        ));
     }
     Ok(v)
 }

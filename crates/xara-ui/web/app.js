@@ -409,3 +409,18 @@ function clearLiveDiagnostics() {
   $("clip").setAttribute("aria-label", "RX clipping inactive");
   $("tx-clip").setAttribute("aria-label", "TX clipping inactive");
 }
+
+$("diagnostic-export").addEventListener("click", async () => {
+  const button = $("diagnostic-export"), status = $("diagnostic-export-status");
+  button.disabled = true;
+  try {
+    const response = await fetch("diagnostics.txt", { credentials: "same-origin", cache: "no-store" });
+    if (!response.ok) throw new Error(await response.text());
+    const blob = new Blob([await response.text()], {type: "text/plain"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "XARA-diagnostics.txt"; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    status.textContent = "Diagnostic export requested. Review device identifiers before sharing.";
+  } catch (error) { status.textContent = `Export failed: ${error.message}`; }
+  finally { button.disabled = false; }
+});

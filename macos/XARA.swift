@@ -14,12 +14,110 @@ struct StationConfiguration: Codable {
     var kissPort = "8100"
     // Optional so older saved configurations decode with external ports disabled.
     var externalPorts: Bool?
+    var driveDB: Double?
+    var leadMS: Int?
+    var tailMS: Int?
 
     var text: String {
         let modeLine = mode.hasPrefix("hf") ? "hf=\(mode.dropFirst(2))" : "fm=\(mode.dropFirst(2))"
         var method = ptt
         if ["rts", "dtr", "rigctld", "cm108"].contains(ptt) { method += ":" + pttAddress }
-        return "call=\(call)\n\(modeLine)\ncapture=\(input)\nplayback=\(output)\nptt=\(method)\nhost-ports=\(externalPorts == true ? "on" : "off")\nport=\(commandPort)\nkiss-port=\(kissPort)"
+        return "call=\(call)\n\(modeLine)\ncapture=\(input)\nplayback=\(output)\nptt=\(method)\nhost-ports=\(externalPorts == true ? "on" : "off")\nport=\(commandPort)\nkiss-port=\(kissPort)\ndrive-db=\(driveDB ?? -5)\nptt-lead-ms=\(leadMS ?? 0)\nptt-tail-ms=\(tailMS ?? 100)"
+    }
+}
+
+struct RadioProfile: Codable {
+    let id: UUID
+    var name: String
+    var station: StationConfiguration
+}
+
+struct RadioProfileStore: Codable {
+    var schema = 1
+    var profiles = [RadioProfile]()
+    static let maximumBytes = 262_144
+
+    static func validName(_ name: String) -> Bool {
+        !name.isEmpty && name.count <= 64 && name == name.trimmingCharacters(in: .whitespacesAndNewlines) && !name.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains)
+    }
+    func validate() throws {
+        guard schema == 1, profiles.count <= 32,
+              profiles.allSatisfy({ Self.validName($0.name) && $0.station.hasValidValues }),
+              Set(profiles.map { $0.name.lowercased() }).count == profiles.count,
+              Set(profiles.map { $0.id }).count == profiles.count else { throw failure("Invalid or unsupported profile file.") }
+    }
+    static func read(from url: URL) throws -> Self {
+        var directory = stat()
+        let parent = url.deletingLastPathComponent()
+        if lstat(parent.path, &directory) != 0 {
+            if errno == ENOENT { return Self() }
+            throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+        }
+        guard directory.st_mode & S_IFMT == S_IFDIR, directory.st_uid == geteuid() else { throw failure("Unsafe profile directory.") }
+        let descriptor = open(url.path, O_RDONLY | O_NOFOLLOW | O_NONBLOCK | O_CLOEXEC)
+        if descriptor < 0 {
+            if errno == ENOENT { return Self() }
+            throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+        }
+        let file = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
+        defer { try? file.close() }
+        var metadata = stat()
+        guard fstat(descriptor, &metadata) == 0, metadata.st_mode & S_IFMT == S_IFREG,
+              metadata.st_nlink == 1, metadata.st_uid == geteuid(), metadata.st_size <= maximumBytes else { throw failure("Unsafe or oversized profile file.") }
+        guard fchmod(descriptor, 0o600) == 0 else { throw POSIXError(.EACCES) }
+        let data = try file.read(upToCount: maximumBytes + 1) ?? Data()
+        guard data.count <= maximumBytes else { throw failure("Profile file is too large.") }
+        let store = try JSONDecoder().decode(Self.self, from: data)
+        try store.validate()
+        return store
+    }
+    func write(to url: URL) throws {
+        try validate()
+        let directory = url.deletingLastPathComponent()
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        var metadata = stat()
+        guard lstat(directory.path, &metadata) == 0, metadata.st_mode & S_IFMT == S_IFDIR, metadata.st_uid == geteuid() else { throw failure("Unsafe profile directory.") }
+        guard chmod(directory.path, 0o700) == 0 else { throw POSIXError(.EACCES) }
+        if lstat(url.path, &metadata) == 0 {
+            guard metadata.st_mode & S_IFMT == S_IFREG, metadata.st_nlink == 1, metadata.st_uid == geteuid() else { throw failure("Unsafe profile file.") }
+        } else if errno != ENOENT { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+        let data = try JSONEncoder().encode(self)
+        guard data.count <= Self.maximumBytes else { throw failure("Profile file is too large.") }
+        let temporary = directory.appendingPathComponent(".profiles-" + UUID().uuidString)
+        let descriptor = open(temporary.path, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0o600)
+        guard descriptor >= 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+        let file = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
+        defer { try? file.close(); unlink(temporary.path) }
+        try file.write(contentsOf: data); try file.synchronize(); try file.close()
+        guard rename(temporary.path, url.path) == 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+    }
+    static func failure(_ text: String) -> NSError { NSError(domain: "XARA.Profiles", code: 1, userInfo: [NSLocalizedDescriptionKey: text]) }
+    private func failure(_ text: String) -> NSError { Self.failure(text) }
+}
+
+extension StationConfiguration {
+    var hasValidValues: Bool {
+        let validCall = !call.utf8.contains(0) && call.withCString { xara_embedded_valid_call($0) != 0 }
+        let command = Int(commandPort) ?? -1, kiss = Int(kissPort) ?? -1
+        let validKiss = kissPort == "off" || (1...65535).contains(kiss) && kiss != command && kiss != command + 1
+        let validDevice: (String) -> Bool = { value in
+            if value == "default" { return true }
+            guard value.hasPrefix("coreaudio:") else { return false }
+            let hex = value.dropFirst(10)
+            return !hex.isEmpty && hex.count % 2 == 0 && hex.count <= 2048 && hex.utf8.allSatisfy { (48...57).contains($0) || (65...70).contains($0) || (97...102).contains($0) }
+        }
+        let safe = [input, output, pttAddress].allSatisfy { !$0.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains) && $0.utf8.count <= 2048 }
+        return validCall && validDevice(input) && validDevice(output) && ["hf500", "hf2300", "hf2750", "fmnarrow", "fmwide"].contains(mode) && ["off", "vox", "rts", "dtr", "rigctld", "cm108"].contains(ptt) && safe && !input.isEmpty && !output.isEmpty && (1...65534).contains(command) && validKiss && (driveDB ?? -5).isFinite && (-30...10).contains(driveDB ?? -5) && (0...1000).contains(leadMS ?? 0) && (0...1000).contains(tailMS ?? 100) && (ptt == "off" || (input != "default" && output != "default"))
+    }
+    func merging(_ saved: [String: String]) -> Self {
+        var result = self
+        result.call = saved["call"] ?? call; result.input = saved["capture"] ?? input; result.output = saved["playback"] ?? output
+        if let value = saved["hf"] { result.mode = "hf" + value }
+        if let value = saved["fm"] { result.mode = "fm" + value }
+        result.driveDB = saved["drive-db"].flatMap(Double.init) ?? driveDB ?? -5
+        result.leadMS = saved["ptt-lead-ms"].flatMap(Int.init) ?? leadMS ?? 0
+        result.tailMS = saved["ptt-tail-ms"].flatMap(Int.init) ?? tailMS ?? 100
+        return result
     }
 }
 
@@ -104,6 +202,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     var timer: Timer?
     var checkingRelease = false
     var closing = false
+    var diagnosticInitError = ""
     var configuration = StationConfiguration()
     let defaults = UserDefaults.standard
     var stateDirectory: URL {
@@ -111,6 +210,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        let logs = stateDirectory.appendingPathComponent("Diagnostics", isDirectory: true)
+        var error = [CChar](repeating: 0, count: 4096)
+        logs.path.withCString { _ = xara_diagnostics_init($0, &error, error.count) }
+        diagnosticInitError = String(cString: error)
+        let info = Bundle.main.infoDictionary ?? [:]
+        diagnostic("app_start version=\(info["CFBundleShortVersionString"] ?? "unknown") build=\(info["CFBundleVersion"] ?? "unknown") os=\(ProcessInfo.processInfo.operatingSystemVersionString) architecture=arm64")
         if let data = defaults.data(forKey: "stationConfiguration"), let saved = try? JSONDecoder().decode(StationConfiguration.self, from: data) { configuration = saved }
         let menu = NSMenu()
         let appItem = NSMenuItem(); menu.addItem(appItem)
@@ -121,11 +226,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         let modemItem = NSMenuItem(); menu.addItem(modemItem)
         let modemMenu = NSMenu(title: "Modem"); modemItem.submenu = modemMenu
         modemMenu.addItem(withTitle: "Station & Radio…", action: #selector(configure), keyEquivalent: ",")
+        modemMenu.addItem(withTitle: "Export Diagnostic Log…", action: #selector(exportDiagnosticLog), keyEquivalent: "")
+        modemMenu.addItem(withTitle: "Diagnostic Logging…", action: #selector(diagnosticLoggingInfo), keyEquivalent: "")
         modemMenu.addItem(withTitle: "Reload", action: #selector(reload), keyEquivalent: "r")
         modemMenu.addItem(withTitle: "Fit to Panels", action: #selector(fitToPanels), keyEquivalent: "0")
         let browserItem = modemMenu.addItem(withTitle: "Open in Browser", action: #selector(openInBrowser), keyEquivalent: "b")
         browserItem.target = self
         browserItem.keyEquivalentModifierMask = [.command, .shift]
+        let profilesItem = NSMenuItem(); menu.addItem(profilesItem)
+        let profilesMenu = NSMenu(title: "Profiles"); profilesItem.submenu = profilesMenu
+        profilesMenu.addItem(withTitle: "Save Current Profile…", action: #selector(saveRadioProfile), keyEquivalent: "")
+        profilesMenu.addItem(withTitle: "Load or Delete Profile…", action: #selector(manageRadioProfiles), keyEquivalent: "")
         let updateItem = NSMenuItem(); menu.addItem(updateItem)
         let updateMenu = NSMenu(title: "Update"); updateItem.submenu = updateMenu
         updateMenu.addItem(withTitle: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
@@ -169,6 +280,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     }
 
     func deviceChoices(_ kind: String) -> [(String, String)] {
+        diagnostic("device_refresh direction=\(kind)")
         let count = xara_embedded_devices(nil, 0)
         var text = [CChar](repeating: 0, count: max(count, 1))
         let needed = xara_embedded_devices(&text, text.count)
@@ -179,25 +291,75 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         return list.compactMap { d in guard let name = d["name"], let desc = d["desc"] else { return nil }; return (name, desc) }
     }
 
-    @objc func configure() {
+    var profileURL: URL { stateDirectory.appendingPathComponent("profiles.json") }
+    @objc func saveRadioProfile() {
+        let current = configuration.merging(savedSettings())
+        guard current.hasValidValues else { alert("Configure station first", "Choose valid station and radio settings before saving a profile."); return }
+        do {
+            var store = try RadioProfileStore.read(from: profileURL)
+            let dialog = NSAlert(); dialog.messageText = "Save current radio profile"
+            dialog.informativeText = "Saves station, mode, audio device IDs, PTT, external ports, TX drive and timing locally. Audio and received messages are excluded."
+            let name = NSTextField(string: ""); name.placeholderString = "Profile name, for example IC-7100 HF"
+            name.frame = NSRect(x: 0, y: 0, width: 360, height: 28); dialog.accessoryView = name
+            dialog.addButton(withTitle: "Save"); dialog.addButton(withTitle: "Cancel")
+            applyMonospace(dialog.window.contentView); dialog.window.initialFirstResponder = name
+            guard dialog.runModal() == .alertFirstButtonReturn else { return }
+            let title = name.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard RadioProfileStore.validName(title) else { alert("Invalid profile name", "Use 1–64 characters without control characters."); return }
+            if let index = store.profiles.firstIndex(where: { $0.name.lowercased() == title.lowercased() }) {
+                let confirm = NSAlert(); confirm.messageText = "Replace profile “\(store.profiles[index].name)”?"
+                confirm.addButton(withTitle: "Replace"); confirm.addButton(withTitle: "Cancel"); applyMonospace(confirm.window.contentView)
+                guard confirm.runModal() == .alertFirstButtonReturn else { return }
+                store.profiles[index].name = title; store.profiles[index].station = current
+            } else {
+                guard store.profiles.count < 32 else { alert("Profile limit reached", "Delete an unused profile before adding another. Up to 32 profiles are supported."); return }
+                store.profiles.append(RadioProfile(id: UUID(), name: title, station: current))
+            }
+            try store.write(to: profileURL)
+            diagnostic("profile_saved count=\(store.profiles.count)")
+        } catch { alert("Couldn’t save profile", error.localizedDescription) }
+    }
+    @objc func manageRadioProfiles() {
+        do {
+            var store = try RadioProfileStore.read(from: profileURL)
+            store.profiles.sort { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+            guard !store.profiles.isEmpty else { alert("No saved profiles", "Use Profiles → Save Current Profile after configuring a radio."); return }
+            let dialog = NSAlert(); dialog.messageText = "Radio profiles"
+            dialog.informativeText = "Load opens Station & Radio for review. Start modem applies the profile while idle. Missing devices remain selected as unavailable. Deleting a profile does not change the running modem."
+            let selection = NSPopUpButton(frame: NSRect(x: 0, y: 0, width: 360, height: 28))
+            selection.addItems(withTitles: store.profiles.map { $0.name }); dialog.accessoryView = selection
+            dialog.addButton(withTitle: "Load profile…"); dialog.addButton(withTitle: "Delete"); dialog.addButton(withTitle: "Close")
+            applyMonospace(dialog.window.contentView)
+            let result = dialog.runModal()
+            let profile = store.profiles[selection.indexOfSelectedItem]
+            if result == .alertFirstButtonReturn {
+                diagnostic("profile_load_requested")
+                configureStation(profile.station)
+            } else if result == .alertSecondButtonReturn {
+                let confirm = NSAlert(); confirm.messageText = "Delete profile “\(profile.name)”?"
+                confirm.addButton(withTitle: "Delete"); confirm.addButton(withTitle: "Cancel"); applyMonospace(confirm.window.contentView)
+                if confirm.runModal() == .alertFirstButtonReturn {
+                    store.profiles.removeAll { $0.id == profile.id }; try store.write(to: profileURL)
+                    diagnostic("profile_deleted count=\(store.profiles.count)")
+                }
+            }
+        } catch { alert("Couldn’t load profiles", error.localizedDescription) }
+    }
+
+    @objc func configure() { configureStation(configuration.merging(savedSettings())) }
+    func configureStation(_ selected: StationConfiguration) {
         guard xara_embedded_can_configure() != 0 else { alert("Modem is busy", "Disconnect the radio link and stop tuning before changing station hardware."); return }
-        let saved = savedSettings()
-        var current = configuration
-        current.call = saved["call"] ?? current.call
-        current.input = saved["capture"] ?? current.input
-        current.output = saved["playback"] ?? current.output
-        if let hf = saved["hf"] { current.mode = "hf" + hf }
-        if let fm = saved["fm"] { current.mode = "fm" + fm }
+        var current = selected
         let dialog = NSAlert()
         dialog.messageText = "Station & Radio"
-        let form = NSView(frame: NSRect(x: 0, y: 0, width: 520, height: 490))
-        var y: CGFloat = 461
+        let form = NSView(frame: NSRect(x: 0, y: 0, width: 520, height: 560))
+        var y: CGFloat = 532
         func add(_ title: String, _ control: NSControl) {
             let label = NSTextField(labelWithString: title)
             label.frame = NSRect(x: 0, y: y + 4, width: 140, height: 20)
             control.frame = NSRect(x: 145, y: y, width: 375, height: 28)
             control.setAccessibilityLabel(title)
-            form.addSubview(label); form.addSubview(control); y -= 41
+            form.addSubview(label); form.addSubview(control); y -= 35
         }
         let call = NSTextField(string: current.call); call.placeholderString = "Callsign"; add("Callsign", call)
         let mode = NSPopUpButton()
@@ -220,6 +382,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         add("External software", ports)
         let port = NSTextField(string: current.commandPort); add("Command port", port)
         let kiss = NSTextField(string: current.kissPort); kiss.placeholderString = "8100 or off"; add("KISS port", kiss)
+        let drive = NSTextField(string: String(current.driveDB ?? -5)); add("TX drive · dB", drive)
+        let lead = NSTextField(string: String(current.leadMS ?? 0)); add("PTT lead · ms", lead)
+        let tail = NSTextField(string: String(current.tailMS ?? 100)); add("PTT tail · ms", tail)
         let note = NSTextField(wrappingLabelWithString: "Data port = command port + 1. Ports are local and unauthenticated; enable only for trusted radio software.\nSaved locally: station, audio, PTT, and port settings. TX drive is remembered automatically. Received data stays in memory unless exported.")
         note.font = .monospacedSystemFont(ofSize: 11, weight: .regular); note.textColor = .secondaryLabelColor
         note.frame = NSRect(x: 0, y: 0, width: 520, height: 74); form.addSubview(note)
@@ -236,19 +401,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         current.externalPorts = ports.state == .on
         current.commandPort = port.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
         current.kissPort = kiss.stringValue.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        current.driveDB = Double(drive.stringValue); current.leadMS = Int(lead.stringValue); current.tailMS = Int(tail.stringValue)
         let validCall = !current.call.utf8.contains(0) && current.call.withCString { xara_embedded_valid_call($0) != 0 }
         let command = Int(current.commandPort) ?? -1
         let kissNumber = Int(current.kissPort) ?? -1
         let validKiss = current.kissPort == "off" || (1...65535).contains(kissNumber) && kissNumber != command && kissNumber != command + 1
-        guard validCall, (1...65534).contains(command), validKiss,
+        guard current.driveDB != nil, current.leadMS != nil, current.tailMS != nil, current.hasValidValues, validCall, (1...65534).contains(command), validKiss,
               !current.pttAddress.contains(where: { $0.isNewline }),
               current.ptt == "off" || (current.input != "default" && current.output != "default") else {
-            alert("Check station settings", "Enter your station callsign, distinct valid TCP ports, and explicit radio audio devices when transmit is enabled."); return
+            alert("Check station settings", "Enter a valid callsign, distinct ports, explicit radio devices for transmit, TX drive −30 to +10 dB, and PTT lead/tail 0–1000 ms."); return
         }
         guard xara_embedded_can_configure() != 0 else {
             alert("Modem is busy", "A radio operation started while settings were open. Disconnect and stop tuning before applying changes."); return
         }
-        configuration = current
         stop { [self] in
             do {
                 try FileManager.default.createDirectory(at: stateDirectory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
@@ -256,6 +421,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
                 guard attributes[.type] as? FileAttributeType == .typeDirectory else { throw POSIXError(.EINVAL) }
                 try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: stateDirectory.path)
                 var settings = savedSettings()
+                settings["drive-db"] = String(current.driveDB ?? -5); settings["ptt-lead-ms"] = String(current.leadMS ?? 0); settings["ptt-tail-ms"] = String(current.tailMS ?? 100)
                 settings["call"] = current.call; settings["capture"] = current.input; settings["playback"] = current.output
                 settings.removeValue(forKey: "hf"); settings.removeValue(forKey: "fm")
                 settings[current.mode.hasPrefix("hf") ? "hf" : "fm"] = String(current.mode.dropFirst(2))
@@ -270,6 +436,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
                 try file.synchronize()
                 try file.close()
                 guard rename(temporary.path, settingsURL.path) == 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+                configuration = current
                 defaults.set(try JSONEncoder().encode(current), forKey: "stationConfiguration")
                 start()
             } catch { alert("Couldn’t save station settings", error.localizedDescription) }
@@ -277,17 +444,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     }
 
     func start() {
+        diagnostic("microphone_permission status=\(AVCaptureDevice.authorizationStatus(for: .audio).rawValue)")
         switch AVCaptureDevice.authorizationStatus(for: .audio) {
         case .authorized: startWorker()
         case .notDetermined:
             showMessage("Microphone access", "Allow audio input so XARA can receive the signal from your selected radio interface.")
             AVCaptureDevice.requestAccess(for: .audio) { granted in DispatchQueue.main.async { [self] in
+                diagnostic("microphone_permission_response granted=\(granted)")
                 if granted { startWorker() } else { permissionError() }
             }}
         default: permissionError()
         }
     }
     func permissionError() {
+        diagnostic("microphone_permission_denied")
         showMessage("Audio input is unavailable", "Allow XARA in System Settings → Privacy & Security → Microphone, then choose Modem → Station & Radio to start again.")
     }
     func startWorker() {
@@ -296,6 +466,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         scripts.removeAllUserScripts()
         scripts.addUserScript(WKUserScript(source: "window.xaraNativeTransmit = \(configuration.ptt != "off"); window.xaraEmbedded = true;", injectionTime: .atDocumentStart, forMainFrameOnly: true))
         showMessage("Starting", "Core Audio")
+        diagnostic("engine_start_requested")
         let result = configuration.text.withCString { config in stateDirectory.path.withCString { directory in xara_embedded_start(config, directory) } }
         guard result == 0 else { alert("Couldn’t start modem", "The modem is already starting or its configuration is invalid."); return }
         timer?.invalidate()
@@ -315,10 +486,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         }
     }
     func stop(_ completion: @escaping () -> Void) {
+        diagnostic("engine_stop_requested")
         timer?.invalidate(); timer = nil; modemURL = nil; engineRunning = false
         xara_embedded_stop()
         DispatchQueue.global(qos: .userInitiated).async {
             xara_embedded_wait()
+            _ = xara_diagnostics_export(nil, 0) // Bounded writer barrier before normal shutdown/reconfiguration.
             DispatchQueue.main.async { completion() }
         }
     }
@@ -331,7 +504,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
     func escape(_ text: String) -> String { text.replacingOccurrences(of: "&", with: "&amp;").replacingOccurrences(of: "<", with: "&lt;").replacingOccurrences(of: ">", with: "&gt;") }
     func showMessage(_ title: String, _ detail: String) {
-        web.loadHTMLString("<!doctype html><html><meta name='color-scheme' content='dark'><body style='margin:0;background:#101416;color:#e5ebea;font:12px ui-monospace,Menlo,monospace;display:grid;place-content:center;height:100vh'><main style='max-width:520px;padding:20px'><div style='color:#89d9bb;letter-spacing:5px'>XARA</div><h1 style='font-weight:500'>\(escape(title))</h1><p style='color:#84938f;line-height:1.4'>\(escape(detail))</p></main></body></html>", baseURL: nil)
+        web.loadHTMLString("<!doctype html><html><meta name='color-scheme' content='dark'><body style='margin:0;background:#101416;color:#e5ebea;font:12px ui-monospace,Menlo,monospace;display:grid;place-content:center;height:100vh'><main style='max-width:520px;padding:20px'><div style='color:#89d9bb;letter-spacing:5px'>XARA</div><h1 style='font-weight:500'>\(escape(title))</h1><p style='color:#84938f;line-height:1.4'>\(escape(detail))</p><p style='color:#84938f;line-height:1.4'>Automatic diagnostic logs: up to 2 MiB locally. No audio or message contents. Modem → Diagnostic Logging / Export Diagnostic Log.</p></main></body></html>", baseURL: nil)
     }
     func alert(_ title: String, _ detail: String) { let alert = NSAlert(); alert.messageText = title; alert.informativeText = detail; applyMonospace(alert.window.contentView); alert.runModal() }
     func applyMenuFont(_ menu: NSMenu) {
@@ -433,12 +606,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         }
     }
 
+    func diagnostic(_ text: String) { text.withCString { xara_diagnostics_event($0) } }
+    @objc func diagnosticLoggingInfo() {
+        let status = diagnosticInitError.isEmpty ? "Automatic operational logging is enabled." : "Logging failed: " + diagnosticInitError
+        alert("Diagnostic logging", "\(status)\n\nCurrent and previous log: up to 1 MiB each, replaced automatically as they fill and at launch. Stored in:\n\(stateDirectory.appendingPathComponent("Diagnostics").path)\n\nIncludes OS/build, audio device names and IDs, channels, rates, latency, errors and numeric signal/timing summaries. No audio recordings, message contents, raw host commands or authentication tokens. Nothing is uploaded automatically. Use Export Diagnostic Log to share it deliberately.")
+    }
+    @objc func exportDiagnosticLog() {
+        let panel = NSSavePanel(); panel.nameFieldStringValue = "XARA-diagnostics.txt"
+        applyMonospace(panel.contentView)
+        panel.beginSheetModal(for: window) { [weak self] result in
+            guard result == .OK, let destination = panel.url, let self else { return }
+            let initializationError = self.diagnosticInitError
+            DispatchQueue.global(qos: .utility).async {
+                // Export is bounded by two 1 MiB logs plus a small metadata header.
+                var text = [CChar](repeating: 0, count: 2_200_000)
+                let needed = xara_diagnostics_export(&text, text.count)
+                do {
+                    guard needed <= text.count else { throw NSError(domain: "XARA.Diagnostics", code: 1, userInfo: [NSLocalizedDescriptionKey: "Diagnostic export exceeded its size limit."]) }
+                    let report = initializationError.isEmpty ? String(cString: text) : "Logging initialization failed: \(initializationError)\n" + String(cString: text)
+                    try report.write(to: destination, atomically: true, encoding: .utf8)
+                } catch { DispatchQueue.main.async { self.alert("Couldn’t export diagnostics", error.localizedDescription) } }
+            }
+        }
+    }
+
     func aboutPanel() -> NSAlert {
         let panel = NSAlert()
         panel.messageText = "Xara modem for Mac"
         let info = Bundle.main.infoDictionary ?? [:]
         let version = info["CFBundleShortVersionString"] as? String ?? "0.1.3"
-        let build = info["CFBundleVersion"] as? String ?? "5"
+        let build = info["CFBundleVersion"] as? String ?? "7"
         panel.informativeText = "By N4EAC, Eduardo\nXARA \(version) · macOS build \(build)\nOriginal modem by x0rro"
         panel.addButton(withTitle: "GitHub Releases")
         panel.addButton(withTitle: "Original XARA")

@@ -170,6 +170,7 @@ impl<M: Modem> Tnc<M> {
                     self.command(c);
                 }
                 Input::Wrong(l) => {
+                    crate::diagnostics::record(format_args!("host_unrecognized_command"));
                     self.echo(&format!("> {l:?}"));
                     self.say(Response::Wrong);
                 }
@@ -407,6 +408,18 @@ impl<M: Modem> Tnc<M> {
 
     fn command(&mut self, c: Command) {
         let idle = self.idle();
+        let kind = match &c {
+            Command::Mycall(_) => "MYCALL",
+            Command::Connect { .. } | Command::ConnectVia { .. } => "CONNECT",
+            Command::Chat(_) => "CHAT",
+            Command::Bw(_) => "BANDWIDTH",
+            Command::Listen(_) => "LISTEN",
+            Command::Disconnect => "DISCONNECT",
+            Command::Abort => "ABORT",
+            Command::DriveLevel(_) => "DRIVELEVEL",
+            _ => "OTHER",
+        };
+        crate::diagnostics::record(format_args!("host_command kind={kind} idle={idle}"));
         let ok = match c {
             Command::Connect { mycall, remote } => !self.station.ptt() && self.station.connect(&mycall, &remote, &[]),
             Command::ConnectVia { mycall, remote, vias } => {
@@ -428,6 +441,7 @@ impl<M: Modem> Tnc<M> {
                 true
             }
             Command::Mycall(Err(Invalid)) => {
+                crate::diagnostics::record(format_args!("host_mycall_invalid"));
                 self.say(Response::Wrong);
                 true
             }
@@ -523,6 +537,7 @@ impl<M: Modem> Tnc<M> {
                 return;
             }
         };
+        crate::diagnostics::record(format_args!("host_command_result kind={kind} accepted={ok} idle={idle}"));
         self.say(if ok { Response::Ok } else { Response::Wrong });
     }
 

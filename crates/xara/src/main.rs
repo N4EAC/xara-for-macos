@@ -544,6 +544,7 @@ fn serve<M: Modem>(
                 token: token.clone(),
                 hosts: a.ui.hosts.clone(),
                 settings: Some(settings),
+                diagnostics: None,
             };
             let ui = UiServer::bind(a.ui.addr(), p, feed, info, access)?;
             say!("UI http://{}/", ui.addr);

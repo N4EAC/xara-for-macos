@@ -15,7 +15,7 @@ Based on **[XARA by x0rro](https://github.com/x0rro/xara)**. The original projec
 | Processor | Apple Silicon (arm64; M1 or newer) |
 | Operating system | macOS 12 Monterey or newer |
 | Intel Macs | Not supported by the downloadable ZIP; it is not a Universal build |
-| Modem version | XARA 0.1.3; macOS application build 6 |
+| Modem version | XARA 0.1.3; macOS application build 7 |
 | Audio | Native Core Audio; 48 kHz, signed 16-bit mono PCM internally |
 | Signing | Ad-hoc signed; not Developer ID signed or notarized |
 
@@ -39,7 +39,17 @@ The macOS app opens one authenticated UI listener on `127.0.0.1` using an automa
 
 There is no analytics, background update check, cloud service, or automatic Internet request in the app code. The modem engine’s only configurable outbound TCP connection is Hamlib rigctld PTT, used when selected; its default address is `127.0.0.1:4532`. **Update → Check for Updates…** makes a user-requested HTTPS metadata request to the N4EAC GitHub releases API. It sends no callsign, audio, payload, or device settings. A remote rigctld address connects to the host you explicitly configure.
 
-Saving settings stores callsign, mode, audio-device identifiers, drive/timing, and native PTT/port preferences locally. The app settings directory is owner-only (`0700`) and the settings file is owner-only (`0600`). Window geometry is also saved by macOS. Received payload previews, telemetry history, and audio buffers remain in memory; they are not automatically logged or uploaded. Export writes monitor text only after a user action; the native app shows a save dialog. The separate command-line modem records audio only when explicitly given `--record`.
+Saving settings stores callsign, mode, audio-device identifiers, drive/timing, and native PTT/port preferences locally. The app settings directory is owner-only (`0700`) and the settings file is owner-only (`0600`). Window geometry is also saved by macOS. Received payload previews and audio buffers remain in memory; they are not automatically logged or uploaded. The app automatically saves bounded operational diagnostics locally, as described below. Monitor and diagnostic exports require a user action; the native app shows a save dialog. The separate command-line modem records audio only when explicitly given `--record`.
+
+**Radio profiles:** Use **Profiles → Save Current Profile…** to save the current station, mode, input/output device IDs, PTT method/address, external-software setting, command/data/KISS ports, TX drive, and PTT lead/tail. Choose **Profiles → Load or Delete Profile…**, select a named profile, and choose Load. Review its settings in Station & Radio and click Start modem to apply it. Loading is refused while the modem is busy. Missing devices remain selected as unavailable; they are never silently replaced by a different audio output.
+
+Up to 32 profiles are stored locally in `~/Library/Application Support/XARA/profiles.json` with owner-only permissions. Saving an existing name offers explicit replacement. Profiles are snapshots: later changes do not alter a saved profile until you replace it. Deleting a profile leaves the running modem unchanged. The Profiles menu belongs to the macOS app; the optional browser UI continues to edit the active modem settings. Older saved station settings remain compatible.
+
+**Automatic diagnostic logs:** The app starts logging before microphone permission or modem startup, including when initialization fails. Logs are stored in `~/Library/Application Support/XARA/Diagnostics/current.log` and `previous.log`, owner-only (`0600`) in an owner-only directory (`0700`). Each file is limited to 1 MiB; rotation or a new launch replaces the older retained file. A bounded background writer keeps disk I/O off the audio loop and reports dropped records/write errors in exports.
+
+Diagnostics include app/modem build, macOS version, device names and UIDs, input/output query failures, channel counts, hardware/modem rates, latency and queue configuration, microphone permission, engine errors, sanitized host-command kinds/outcomes, state/PTT transitions, watchdog/stall warnings, panic location/backtrace (without its message), and 10-second numeric audio/timing summaries. Summaries flag all-zero RX, full-scale samples and slow processing; these are observations, not automatic diagnoses of radio hardware. No raw audio, received message text, raw host commands, callsign configuration dumps or UI tokens are intentionally captured. Device identifiers and paths can identify hardware; review before sharing. Nothing is uploaded automatically.
+
+Use **Modem → Export Diagnostic Log…** even if the modem cannot start, or **Diagnostics → Export diagnostic log** in the app or authenticated web UI. **Modem → Diagnostic Logging…** explains storage and initialization errors. The Data monitor's separate Export can include received message previews. Automatic diagnostics are a native-app feature; standalone CLI logging remains explicitly requested with `--log`. Sudden process termination or a full queue can lose the last queued records, and a failed disk can prevent logging.
 
 The embedded web view uses a nonpersistent website data store. An external browser can retain the local URL, session cookie, and display preferences according to its own settings; no payload log is saved in browser storage by the UI. These protections do not isolate XARA from software already running as your macOS user. See [the security review](SECURITY_REVIEW.md) for scope, evidence, and limitations.
 
@@ -89,7 +99,7 @@ When the modem is busy, repeating `MYCALL` with the exact callsign list already 
 
 The modem PHY/ARQ crates match upstream 0.1.3, including the callsign/SSID fix, DSP warm-up, audio resampling/buffering, Core Audio backend, and revised latency/PTT-tail model. The native app uses that audio/latency path while preserving its authenticated UI, owner-only settings, and default-disabled external-software ports. Existing encoded Core Audio device selections remain compatible.
 
-The original CLI source retains explicitly requested `--log`/`--record`, digipeating, and optional registered/experimental `(tr)uSDX` features. Recording/log-file controls, digipeater configuration, registered speeds, and the experimental `(tr)uSDX` transport are not exposed or enabled by the standard native application. The optional upstream launchd example is not installed by the app build. See [UPSTREAM_REVIEW.md](UPSTREAM_REVIEW.md) for the comparison and telemetry mapping.
+The original CLI source retains explicitly requested `--log`/`--record`, digipeating, and optional registered/experimental `(tr)uSDX` features. Payload/audio recording controls, digipeater configuration, registered speeds, and the experimental `(tr)uSDX` transport are not exposed or enabled by the standard native application. The optional upstream launchd example is not installed by the app build. See [UPSTREAM_REVIEW.md](UPSTREAM_REVIEW.md) for the comparison and telemetry mapping.
 
 **Update → Check for Updates…** compares the app version and build with this repository’s latest published macOS release. Matching versions display “Xara UI for Mac by N4EAC is up-to-date.” A newer release offers its GitHub page. The check does not download, install, rebuild, or restart anything; using the app and checking for updates require no Rust or Xcode installation. Those tools are required only for building from source.
 
@@ -97,7 +107,7 @@ The waterfall displays **RX input audio**; it does not mix in generated TX audio
 
 Setup lists audio devices by name. Refresh devices after connecting an interface; an unavailable selection is preserved until you select a replacement.
 
-The current app and release are 0.1.3 / macOS build 6.
+The current app and release are 0.1.3 / macOS build 7.
 
 ## Validation
 
